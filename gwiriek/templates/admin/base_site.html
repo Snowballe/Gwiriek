@@ -1,0 +1,28 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+{% comment %}Admin header with a language switcher (French / English), shown on every page including login.{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style{% csp_nonce_attr %}>
+  .gwiriek-language { display: inline-flex; gap: 0.3rem; align-items: center; margin-left: auto; }
+  .gwiriek-language select, .gwiriek-language button { font-size: 0.8rem; padding: 2px 6px; }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
+{% if user.is_anonymous %}{% include "admin/color_theme_toggle.html" %}{% endif %}
+{# In the branding block: the login page empties nav-global. #}
+<form class="gwiriek-language" action="{% url 'set_language' %}" method="post">
+  {% csrf_token %}
+  <input name="next" type="hidden" value="{{ request.get_full_path }}">
+  {% get_current_language as current %}{% get_available_languages as languages %}
+  <label for="gwiriek-language-select" class="visually-hidden">{% translate "Language" %}</label>
+  <select id="gwiriek-language-select" name="language">
+    {% for code, name in languages %}<option value="{{ code }}"{% if code == current %} selected{% endif %}>{{ code|language_name_local|capfirst }}</option>{% endfor %}
+  </select>
+  <button type="submit">OK</button>
+</form>
+{% endblock %}

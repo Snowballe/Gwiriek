@@ -46,7 +46,7 @@ et registre de sécurité.
 - **Fin de vie calculée** et **échéances** : fins de vie et vérifications dépassées ou
   proches, stock compris, et fins de vie impossibles à calculer faute de données.
 - **Alertes par e-mail** : récapitulatif des échéances, à planifier avec cron ou systemd.
-- **Interfaces** : admin Django en français, commande `gwiriek`, serveur MCP.
+- **Interfaces** : admin Django en français ou en anglais (sélecteur dans l'en-tête, langue du navigateur par défaut), commande `gwiriek`, serveur MCP. La CLI et le serveur MCP suivent `GWIRIEK_LANGUAGE_CODE` (`fr` par défaut, `en` possible).
 
 ## Installation
 

@@ -124,3 +124,13 @@ def all_ok():
         return dict.fromkeys(model.checklist, "ok")
 
     return _all_ok
+
+
+@pytest.fixture(autouse=True)
+def _reset_language():
+    """Keep the default language between tests: a request may activate another one."""
+    from django.conf import settings
+    from django.utils import translation
+
+    yield
+    translation.activate(settings.LANGUAGE_CODE)

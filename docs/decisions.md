@@ -30,3 +30,4 @@
 | 2026-11-19 | Django `MAILERS` setting, console backend by default | `EMAIL_*` settings are deprecated in Django 6.1; nothing is sent by mistake from a development setup. |
 | 2026-11-19 | Migration 0002 recreates the inspection table and stops if it holds rows | The 0001 table had no workflow writing to it; its inspector fields are replaced by a foreign key to `Inspector`. |
 | 2026-11-19 | An item counts as put into use only with a service date or an `in_service`/`watch` status | A stock item sent to quarantine or retired without a service date keeps its storage limit; treating it as in use would push its end of life back. |
+| 2026-11-19 | Admin in French and English: browser language by default, switcher in the header (cookie) | The source strings are English and the French catalogue is complete; a visible switcher fixes the case of a browser set to English. CLI and MCP follow `GWIRIEK_LANGUAGE_CODE`. |
