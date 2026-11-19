@@ -1,0 +1,989 @@
+# French translation of Gwiriek.
+# This file is distributed under the same license as Gwiriek (AGPL-3.0).
+msgid ""
+msgstr ""
+"Project-Id-Version: gwiriek\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-19 12:44+0100\n"
+"PO-Revision-Date: 2026-11-19 13:00+0100\n"
+"Last-Translator: Gwiriek contributors\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "at most"
+msgstr "au plus tard"
+
+msgid "not started"
+msgstr "non démarrée"
+
+msgid "unknown"
+msgstr "inconnue"
+
+msgid "unlimited"
+msgstr "illimitée"
+
+msgid "no data"
+msgstr "pas de données"
+
+msgid "ID"
+msgstr "ID"
+
+msgid "Item"
+msgstr "Article"
+
+msgid "Model"
+msgstr "Modèle"
+
+msgid "Family"
+msgstr "Famille"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "End of life"
+msgstr "Fin de vie"
+
+msgid "Assigned to"
+msgstr "Affecté à"
+
+#, python-format
+msgid "%(count)d item(s)."
+msgstr "%(count)d article(s)."
+
+msgid "Internal label"
+msgstr "Marquage interne"
+
+msgid "Serial number"
+msgstr "N° de série"
+
+msgid "Lot number"
+msgstr "N° de lot"
+
+msgid "Date of manufacture"
+msgstr "Date de fabrication"
+
+msgid "Date of purchase"
+msgstr "Date d'achat"
+
+msgid "Date put into service"
+msgstr "Date de mise en service"
+
+msgid "Date retired"
+msgstr "Date de mise au rebut"
+
+msgid "Rope diameter (mm)"
+msgstr "Diamètre de la corde (mm)"
+
+msgid "Rope length (m)"
+msgstr "Longueur de la corde (m)"
+
+msgid "Rope type"
+msgstr "Type de corde"
+
+msgid "Rope terminations"
+msgstr "Terminaisons de la corde"
+
+msgid "(passed)"
+msgstr "(dépassée)"
+
+#, python-format
+msgid "(in %(days)d days)"
+msgstr "(dans %(days)d jours)"
+
+msgid "Missing data"
+msgstr "Données manquantes"
+
+msgid "Put into service after the maximum storage time."
+msgstr "Mis en service après la durée maximale de stockage."
+
+msgid "since"
+msgstr "depuis le"
+
+msgid "Notes"
+msgstr "Notes"
+
+msgid "Status history"
+msgstr "Historique des statuts"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "From"
+msgstr "Du"
+
+msgid "To"
+msgstr "Vers"
+
+msgid "By"
+msgstr "Par"
+
+msgid "Reason"
+msgstr "Motif"
+
+msgid "Assignments"
+msgstr "Affectations"
+
+msgid "Target"
+msgstr "Type"
+
+msgid "Who / where"
+msgstr "Qui / où"
+
+msgid "Until"
+msgstr "Au"
+
+msgid "Days"
+msgstr "Jours"
+
+msgid "End of life passed"
+msgstr "Fin de vie dépassée"
+
+#, python-format
+msgid "End of life within %(days)d days"
+msgstr "Fin de vie dans les %(days)d jours"
+
+msgid "End of life to determine by hand"
+msgstr "Fin de vie à déterminer manuellement"
+
+#, python-format
+msgid "As of %(date)s"
+msgstr "Au %(date)s"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Website"
+msgstr "Site web"
+
+msgid "Manufacturer"
+msgstr "Fabricant"
+
+msgid "Reference"
+msgstr "Référence"
+
+msgid "Standards"
+msgstr "Normes"
+
+msgid "Lifetime / storage / service (months)"
+msgstr "Vie max. / stockage / usage (mois)"
+
+msgid "Lifetime source"
+msgstr "Source des durées de vie"
+
+msgid "Inspection interval (months)"
+msgstr "Périodicité de vérification (mois)"
+
+msgid "Instructions for use"
+msgstr "Notice d'utilisation"
+
+msgid "Inspection procedure"
+msgstr "Procédure de vérification"
+
+msgid "Checklist:"
+msgstr "Points de contrôle :"
+
+msgid "yes"
+msgstr "oui"
+
+msgid "no"
+msgstr "non"
+
+msgid "Last name"
+msgstr "Nom"
+
+msgid "First name"
+msgstr "Prénom"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "print JSON on stdout"
+msgstr "écrire du JSON sur la sortie standard"
+
+msgid "name recorded in the audit log (default: cli:<user>)"
+msgstr "nom inscrit au journal d'audit (par défaut : cli:<utilisateur>)"
+
+msgid "Gwiriek: PPE management for rope access companies."
+msgstr "Gwiriek : gestion des EPI pour les entreprises de travaux sur cordes."
+
+msgid ""
+"Exit codes: 0 success, 1 business error, 2 usage error, 3 items due (due "
+"--check)."
+msgstr ""
+"Codes de retour : 0 succès, 1 erreur métier, 2 erreur d'utilisation, 3 "
+"articles à traiter (due --check)."
+
+msgid "items (PPE)"
+msgstr "articles (EPI)"
+
+msgid "list items"
+msgstr "lister les articles"
+
+msgid "keep this status (repeatable)"
+msgstr "garder ce statut (répétable)"
+
+msgid "keep this family"
+msgstr "garder cette famille"
+
+msgid "text in label, serial, lot, model or manufacturer"
+msgstr ""
+"texte dans le marquage, le n° de série ou de lot, le modèle ou le fabricant"
+
+msgid "items currently assigned to this person id"
+msgstr "articles actuellement affectés à cette personne (id)"
+
+msgid "maximum number of items"
+msgstr "nombre maximal d'articles"
+
+msgid "show an item's life record"
+msgstr "afficher la fiche de vie d'un article"
+
+msgid ""
+"id, internal label or serial number (prefix id:, label: or serial: if "
+"ambiguous)"
+msgstr ""
+"id, marquage interne ou n° de série (préfixer par id:, label: ou serial: en "
+"cas d'ambiguïté)"
+
+msgid "register an item"
+msgstr "enregistrer un article"
+
+msgid "product model id"
+msgstr "id du modèle"
+
+msgid "serial number"
+msgstr "n° de série"
+
+msgid "lot number"
+msgstr "n° de lot"
+
+msgid "internal label"
+msgstr "marquage interne"
+
+msgid "date of manufacture (YYYY-MM-DD)"
+msgstr "date de fabrication (AAAA-MM-JJ)"
+
+msgid "date of purchase (YYYY-MM-DD)"
+msgstr "date d'achat (AAAA-MM-JJ)"
+
+msgid "date put into service (YYYY-MM-DD)"
+msgstr "date de mise en service (AAAA-MM-JJ)"
+
+msgid "initial status (default: in_stock)"
+msgstr "statut initial (par défaut : in_stock)"
+
+msgid "rope diameter in mm"
+msgstr "diamètre de la corde en mm"
+
+msgid "rope length in m"
+msgstr "longueur de la corde en m"
+
+msgid "EN 1891 rope type"
+msgstr "type de corde EN 1891"
+
+msgid "rope terminations"
+msgstr "terminaisons de la corde"
+
+msgid "notes"
+msgstr "notes"
+
+msgid "change an item's status"
+msgstr "changer le statut d'un article"
+
+msgid "id, internal label or serial number"
+msgstr "id, marquage interne ou n° de série"
+
+msgid "new status"
+msgstr "nouveau statut"
+
+msgid "reason (required for quarantine and retired)"
+msgstr "motif (obligatoire pour quarantine et retired)"
+
+msgid "date of the change (default: today)"
+msgstr "date du changement (par défaut : aujourd'hui)"
+
+msgid "assign an item to a person, a site or the stock"
+msgstr "affecter un article à une personne, un chantier ou au stock"
+
+msgid "person id"
+msgstr "id de la personne"
+
+msgid "site name"
+msgstr "nom du chantier"
+
+msgid "return to stock (optional place)"
+msgstr "remettre en stock (lieu facultatif)"
+
+msgid "start date (default: today)"
+msgstr "date de début (par défaut : aujourd'hui)"
+
+msgid "items whose end of life is passed or near"
+msgstr "articles dont la fin de vie est dépassée ou proche"
+
+msgid "horizon in days (default: 90)"
+msgstr "horizon en jours (par défaut : 90)"
+
+msgid "exit with code 3 if any item is passed or due"
+msgstr "sortir avec le code 3 si un article est dépassé ou à échéance"
+
+msgid "product catalogue"
+msgstr "catalogue des modèles"
+
+msgid "list manufacturers"
+msgstr "lister les fabricants"
+
+msgid "add a manufacturer"
+msgstr "ajouter un fabricant"
+
+msgid "name"
+msgstr "nom"
+
+msgid "website URL"
+msgstr "URL du site web"
+
+msgid "contact details"
+msgstr "coordonnées"
+
+msgid "list product models"
+msgstr "lister les modèles"
+
+msgid "text in name, reference or manufacturer"
+msgstr "texte dans le nom, la référence ou le fabricant"
+
+msgid "manufacturer id or name"
+msgstr "id ou nom du fabricant"
+
+msgid "show a product model"
+msgstr "afficher un modèle"
+
+msgid "add a product model"
+msgstr "ajouter un modèle"
+
+msgid "model name"
+msgstr "nom du modèle"
+
+msgid "family"
+msgstr "famille"
+
+msgid "manufacturer reference"
+msgstr "référence fabricant"
+
+msgid "standard, e.g. 'EN 361' (repeatable)"
+msgstr "norme, par ex. « EN 361 » (répétable)"
+
+msgid "no lifetime limit"
+msgstr "durée de vie illimitée"
+
+msgid "maximum lifetime from manufacture"
+msgstr "durée de vie maximale depuis la fabrication"
+
+msgid "maximum storage before first use"
+msgstr "durée maximale de stockage avant la première utilisation"
+
+msgid "maximum service life"
+msgstr "durée maximale d'utilisation"
+
+msgid "where the durations come from"
+msgstr "source des durées"
+
+msgid "inspection interval in months (default: 12)"
+msgstr "périodicité de vérification en mois (par défaut : 12)"
+
+msgid "instructions for use URL"
+msgstr "URL de la notice d'utilisation"
+
+msgid "inspection procedure URL"
+msgstr "URL de la procédure de vérification"
+
+msgid "checklist point (repeatable, in order)"
+msgstr "point de contrôle (répétable, dans l'ordre)"
+
+msgid "people"
+msgstr "personnes"
+
+msgid "list people"
+msgstr "lister les personnes"
+
+msgid "include inactive people"
+msgstr "inclure les personnes inactives"
+
+msgid "add a person"
+msgstr "ajouter une personne"
+
+msgid "first name"
+msgstr "prénom"
+
+msgid "last name"
+msgstr "nom"
+
+msgid "email"
+msgstr "e-mail"
+
+msgid "run the MCP server on stdio"
+msgstr "lancer le serveur MCP sur stdio"
+
+msgid "run a Django management command (e.g. migrate)"
+msgstr "lancer une commande de gestion Django (par ex. migrate)"
+
+msgid "Gwiriek: PPE management"
+msgstr "Gwiriek : gestion des EPI"
+
+msgid "Inventory"
+msgstr "Inventaire"
+
+msgid "inspection checklist"
+msgstr "points de contrôle"
+
+msgid "One point to check per line, in order."
+msgstr "Un point à contrôler par ligne, dans l'ordre."
+
+#, python-format
+msgid "%(n)d y"
+msgstr "%(n)d ans"
+
+#, python-format
+msgid "%(n)d mo"
+msgstr "%(n)d mois"
+
+msgid "Lifespan (manufacturer data)"
+msgstr "Durée de vie (données fabricant)"
+
+msgid "Inspection"
+msgstr "Vérification"
+
+msgid "lifespan"
+msgstr "durée de vie"
+
+msgid "end of life"
+msgstr "fin de vie"
+
+msgid "Passed"
+msgstr "Dépassée"
+
+msgid "Within 90 days"
+msgstr "Dans les 90 jours"
+
+msgid "Within a year"
+msgstr "Dans l'année"
+
+msgid "Undetermined"
+msgstr "Indéterminée"
+
+msgid "reason for the status change"
+msgstr "motif du changement de statut"
+
+msgid "Required for quarantine and retirement. Recorded in the audit log."
+msgstr ""
+"Obligatoire pour la quarantaine et la mise au rebut. Inscrit au journal "
+"d'audit."
+
+msgid "assign to"
+msgstr "affecter à"
+
+msgid "person"
+msgstr "personne"
+
+msgid "site or storage"
+msgstr "chantier ou lieu de stockage"
+
+msgid "from"
+msgstr "à partir du"
+
+msgid "Defaults to today."
+msgstr "Par défaut : aujourd'hui."
+
+msgid "Dates and end of life"
+msgstr "Dates et fin de vie"
+
+msgid "Assignment"
+msgstr "Affectation"
+
+msgid "Rope"
+msgstr "Corde"
+
+msgid "Record"
+msgstr "Enregistrement"
+
+msgid "(at most)"
+msgstr "(au plus tard)"
+
+msgid "assigned to"
+msgstr "affecté à"
+
+msgid "computed end of life"
+msgstr "fin de vie calculée"
+
+#, python-format
+msgid "Date: %(date)s"
+msgstr "Date : %(date)s"
+
+#, python-format
+msgid "Limit %(limit)s: %(date)s"
+msgstr "Limite %(limit)s : %(date)s"
+
+#, python-format
+msgid "Missing: %(fields)s"
+msgstr "Manquant : %(fields)s"
+
+msgid "Registered"
+msgstr "Enregistrement"
+
+msgid "Computed from all manufacturer limits."
+msgstr "Calculée à partir de toutes les limites du fabricant."
+
+msgid "Partial: data is missing, the real end of life may be earlier."
+msgstr ""
+"Partielle : des données manquent, la fin de vie réelle peut être plus tôt."
+
+msgid "Starts when the item is put into service."
+msgstr "Démarre à la mise en service."
+
+msgid "Cannot be computed: dates are missing."
+msgstr "Impossible à calculer : des dates manquent."
+
+msgid "No lifetime limit stated by the manufacturer."
+msgstr "Pas de limite de durée de vie indiquée par le fabricant."
+
+msgid "No lifespan data in the catalogue."
+msgstr "Pas de durée de vie renseignée dans le catalogue."
+
+msgid "from manufacture"
+msgstr "depuis la fabrication"
+
+msgid "maximum storage"
+msgstr "stockage maximal"
+
+msgid "service life"
+msgstr "durée d'utilisation"
+
+msgid "PPE inventory"
+msgstr "Parc EPI"
+
+msgid "Harness"
+msgstr "Harnais"
+
+msgid "Lanyard"
+msgstr "Longe"
+
+msgid "Connector"
+msgstr "Connecteur"
+
+msgid "Descender"
+msgstr "Descendeur"
+
+msgid "Ascender / rope clamp"
+msgstr "Bloqueur"
+
+msgid "Mobile fall arrester"
+msgstr "Antichute mobile"
+
+msgid "Helmet"
+msgstr "Casque"
+
+msgid "Energy absorber"
+msgstr "Absorbeur d'énergie"
+
+msgid "Other"
+msgstr "Autre"
+
+msgid "In stock"
+msgstr "En stock"
+
+msgid "In service"
+msgstr "En service"
+
+msgid "Under watch"
+msgstr "À surveiller"
+
+msgid "Quarantine"
+msgstr "Quarantaine"
+
+msgid "Retired"
+msgstr "Rebuté"
+
+msgid "Type A"
+msgstr "Type A"
+
+msgid "Type B"
+msgstr "Type B"
+
+msgid "Person"
+msgstr "Personne"
+
+msgid "Site"
+msgstr "Chantier"
+
+msgid "Stock"
+msgstr "Stock"
+
+msgid "Fit for use"
+msgstr "Valide"
+
+msgid "Fit for use, under watch"
+msgstr "Valide, à surveiller"
+
+msgid "Retire"
+msgstr "À rebuter"
+
+msgid "website"
+msgstr "site web"
+
+msgid "manufacturer"
+msgstr "fabricant"
+
+msgid "manufacturers"
+msgstr "fabricants"
+
+msgid "code"
+msgstr "code"
+
+msgid "title"
+msgstr "intitulé"
+
+msgid "standard"
+msgstr "norme"
+
+msgid "standards"
+msgstr "normes"
+
+msgid "The checklist must be a list of non-empty points."
+msgstr "Les points de contrôle doivent être une liste de points non vides."
+
+msgid "unlimited lifetime"
+msgstr "durée de vie illimitée"
+
+msgid "The manufacturer states no lifetime limit (e.g. some metal products)."
+msgstr ""
+"Le fabricant n'indique aucune limite de durée de vie (par ex. certains "
+"produits métalliques)."
+
+msgid "maximum lifetime (months)"
+msgstr "durée de vie maximale (mois)"
+
+msgid "Maximum lifetime counted from the date of manufacture."
+msgstr "Durée de vie maximale comptée depuis la date de fabrication."
+
+msgid "maximum storage (months)"
+msgstr "durée maximale de stockage (mois)"
+
+msgid "Maximum time between manufacture and first use."
+msgstr "Durée maximale entre la fabrication et la première utilisation."
+
+msgid "maximum service life (months)"
+msgstr "durée maximale d'utilisation (mois)"
+
+msgid "Maximum time in use, counted from the date put into service."
+msgstr ""
+"Durée maximale d'utilisation, comptée depuis la date de mise en service."
+
+msgid "lifetime source"
+msgstr "source des durées de vie"
+
+msgid "Where the durations come from (notice, URL, version)."
+msgstr "Origine des durées (notice, URL, version)."
+
+msgid "inspection interval (months)"
+msgstr "périodicité de vérification (mois)"
+
+msgid "Periodic inspection interval; French regulation requires at most 12."
+msgstr ""
+"Périodicité de la vérification générale périodique ; 12 mois au plus selon "
+"la réglementation."
+
+msgid "Ordered list of points to check during an inspection."
+msgstr "Liste ordonnée des points à contrôler lors d'une vérification."
+
+msgid "product model"
+msgstr "modèle"
+
+msgid "product models"
+msgstr "modèles"
+
+msgid "An unlimited lifetime cannot be combined with maximum durations."
+msgstr ""
+"Une durée de vie illimitée ne peut pas être combinée avec des durées "
+"maximales."
+
+msgid "Durations must be at least one month."
+msgstr "Les durées doivent être d'au moins un mois."
+
+msgid "French regulation requires an inspection at least every 12 months."
+msgstr "La réglementation impose une vérification au moins tous les 12 mois."
+
+msgid "active"
+msgstr "actif"
+
+msgid "model"
+msgstr "modèle"
+
+msgid "Company marking, e.g. C-012. Unique when set."
+msgstr "Marquage de l'entreprise, par ex. C-012. Unique s'il est renseigné."
+
+msgid "date of manufacture"
+msgstr "date de fabrication"
+
+msgid "If only the month is known, enter the first day of that month."
+msgstr "Si seul le mois est connu, saisir le premier jour du mois."
+
+msgid "date of purchase"
+msgstr "date d'achat"
+
+msgid "date put into service"
+msgstr "date de mise en service"
+
+msgid "First use; starts the service life clock."
+msgstr "Première utilisation ; démarre le décompte de la durée d'utilisation."
+
+msgid "status"
+msgstr "statut"
+
+msgid "date retired"
+msgstr "date de mise au rebut"
+
+msgid "rope diameter (mm)"
+msgstr "diamètre de la corde (mm)"
+
+msgid "rope length (m)"
+msgstr "longueur de la corde (m)"
+
+msgid "rope type"
+msgstr "type de corde"
+
+msgid "Number and kind, e.g. two sewn eyes."
+msgstr "Nombre et type, par ex. deux œils cousus."
+
+msgid "created at"
+msgstr "créé le"
+
+msgid "updated at"
+msgstr "modifié le"
+
+msgid "item"
+msgstr "article"
+
+msgid "items"
+msgstr "articles"
+
+msgid "previous status"
+msgstr "statut précédent"
+
+msgid "changed at"
+msgstr "modifié le"
+
+msgid "by"
+msgstr "par"
+
+msgid "reason"
+msgstr "motif"
+
+msgid "status change"
+msgstr "changement de statut"
+
+msgid "status changes"
+msgstr "changements de statut"
+
+msgid "location"
+msgstr "lieu"
+
+msgid "Site or storage name."
+msgstr "Nom du chantier ou du lieu de stockage."
+
+msgid "until"
+msgstr "jusqu'au"
+
+msgid "assignment"
+msgstr "affectation"
+
+msgid "assignments"
+msgstr "affectations"
+
+msgid "file"
+msgstr "fichier"
+
+msgid "description"
+msgstr "description"
+
+msgid "uploaded at"
+msgstr "ajouté le"
+
+msgid "attachment"
+msgstr "pièce jointe"
+
+msgid "attachments"
+msgstr "pièces jointes"
+
+msgid "inspection date"
+msgstr "date de vérification"
+
+msgid "internal inspector"
+msgstr "vérificateur interne"
+
+msgid "external inspector"
+msgstr "vérificateur externe"
+
+msgid "Name and company of an external qualified person."
+msgstr "Nom et société de la personne qualifiée externe."
+
+msgid "decision"
+msgstr "décision"
+
+msgid "checklist results"
+msgstr "résultats des points de contrôle"
+
+msgid "observations"
+msgstr "observations"
+
+msgid "next inspection due"
+msgstr "prochaine vérification"
+
+msgid "report"
+msgstr "rapport"
+
+msgid "report archive location"
+msgstr "lieu d'archivage du rapport"
+
+msgid "Where an external report is archived, when it is not attached."
+msgstr "Lieu d'archivage d'un rapport externe non joint."
+
+msgid "inspection"
+msgstr "vérification"
+
+msgid "inspections"
+msgstr "vérifications"
+
+#, python-format
+msgid "Unknown assignment target %(kind)s."
+msgstr "Type d'affectation inconnu : %(kind)s."
+
+msgid "A retired item cannot be assigned."
+msgstr "Un article rebuté ne peut pas être affecté."
+
+msgid "A quarantined item cannot be issued."
+msgstr "Un article en quarantaine ne peut pas être remis en dotation."
+
+msgid "This item has passed its end of life and cannot be issued."
+msgstr ""
+"Cet article a dépassé sa fin de vie et ne peut pas être remis en dotation."
+
+msgid "Choose the person to assign the item to."
+msgstr "Choisissez la personne à qui affecter l'article."
+
+msgid "This person is no longer active."
+msgstr "Cette personne n'est plus active."
+
+msgid "A person can only be given for a person assignment."
+msgstr ""
+"Une personne ne peut être indiquée que pour une affectation à une personne."
+
+msgid "Enter the site name."
+msgstr "Indiquez le nom du chantier."
+
+msgid "An assignment cannot start in the future."
+msgstr "Une affectation ne peut pas commencer dans le futur."
+
+#, python-format
+msgid "The new assignment cannot start before the current one (%(date)s)."
+msgstr ""
+"La nouvelle affectation ne peut pas commencer avant l'affectation en cours "
+"(%(date)s)."
+
+msgid "Issued"
+msgstr "Remis en dotation"
+
+msgid "Returned to stock"
+msgstr "Remis en stock"
+
+#, python-format
+msgid "No manufacturer with id %(ref)s."
+msgstr "Aucun fabricant avec l'id %(ref)s."
+
+#, python-format
+msgid "No manufacturer named %(ref)s."
+msgstr "Aucun fabricant nommé %(ref)s."
+
+#, python-format
+msgid "Unknown family %(family)s."
+msgstr "Famille inconnue : %(family)s."
+
+#, python-format
+msgid "No product model with id %(id)s."
+msgstr "Aucun modèle avec l'id %(id)s."
+
+msgid "The number of days cannot be negative."
+msgstr "Le nombre de jours ne peut pas être négatif."
+
+msgid "Indicative: to be confirmed against the manufacturer's instructions."
+msgstr "À titre indicatif : à confirmer selon la notice du fabricant."
+
+msgid "An item id must be a number."
+msgstr "Un id d'article doit être un nombre."
+
+#, python-format
+msgid "No item matches %(ref)s."
+msgstr "Aucun article ne correspond à %(ref)s."
+
+#, python-format
+msgid "%(ref)s matches several items; prefix it with id:, label: or serial:."
+msgstr ""
+"%(ref)s correspond à plusieurs articles ; préfixez par id:, label: ou "
+"serial:."
+
+#, python-format
+msgid "Unknown status: %(values)s."
+msgstr "Statut inconnu : %(values)s."
+
+msgid "Enter a serial number or a lot number."
+msgstr "Saisissez un n° de série ou un n° de lot."
+
+msgid "This date is in the future."
+msgstr "Cette date est dans le futur."
+
+msgid "This date is before the date of manufacture."
+msgstr "Cette date est antérieure à la date de fabrication."
+
+msgid "An item in use needs the date it was put into service."
+msgstr "Un article en utilisation doit avoir une date de mise en service."
+
+msgid "Rope fields only apply to ropes."
+msgstr "Les champs propres aux cordes ne s'appliquent qu'aux cordes."
+
+msgid "A retired item cannot change status."
+msgstr "Un article rebuté ne peut plus changer de statut."
+
+msgid "An item cannot be registered as retired."
+msgstr "Un article ne peut pas être enregistré comme rebuté."
+
+#, python-format
+msgid "A reason is required to set the status to %(status)s."
+msgstr "Un motif est obligatoire pour passer au statut %(status)s."
+
+msgid "A reason is required for this status."
+msgstr "Un motif est obligatoire pour ce statut."
+
+msgid "The actor of a change is required."
+msgstr "L'auteur du changement est obligatoire."
+
+msgid "This item has passed its end of life and cannot be put into use."
+msgstr ""
+"Cet article a dépassé sa fin de vie et ne peut pas être mis en utilisation."
+
+#, python-format
+msgid "The item already has the status %(status)s."
+msgstr "L'article a déjà le statut %(status)s."
+
+#, python-format
+msgid "No person with id %(id)s."
+msgstr "Aucune personne avec l'id %(id)s."
+
+msgid "French"
+msgstr "Français"
+
+msgid "English"
+msgstr "Anglais"
