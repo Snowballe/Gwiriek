@@ -20,6 +20,8 @@ et registre de sécurité.
 - [Ligne de commande](#ligne-de-commande)
 - [Serveur MCP](#serveur-mcp)
 - [Fin de vie calculée](#fin-de-vie-calculée)
+- [Vérifications périodiques](#vérifications-périodiques)
+- [Alertes par e-mail](#alertes-par-e-mail)
 - [Développement](#développement)
 - [Licence](#licence)
 
@@ -34,11 +36,17 @@ et registre de sécurité.
 - **Statuts** : en stock, en service, à surveiller, quarantaine, rebuté. Chaque changement
   est inscrit dans un journal d'audit non modifiable (auteur, date, motif).
 - **Affectations** datées à une personne, un chantier ou au stock, avec historique.
-- **Fin de vie calculée** et **échéances** : articles dépassés, proches de leur fin de vie, ou
-  dont la fin de vie ne peut pas être calculée faute de données.
+- **Vérificateurs** : liste des personnes qualifiées (R4323-100), internes ou externes, avec
+  habilitation écrite (date, référence ou document, échéance éventuelle) et périmètre par
+  familles d'EPI ; export CSV.
+- **Vérifications périodiques** : points de contrôle du modèle figés dans l'enregistrement,
+  décision en 4 états (valide, à surveiller, quarantaine, rebut) appliquée au statut de
+  l'article, rapport externe joint ou date et lieu d'archivage, prochaine échéance calculée.
+  Une vérification enregistrée n'est plus modifiable.
+- **Fin de vie calculée** et **échéances** : fins de vie et vérifications dépassées ou
+  proches, stock compris, et fins de vie impossibles à calculer faute de données.
+- **Alertes par e-mail** : récapitulatif des échéances, à planifier avec cron ou systemd.
 - **Interfaces** : admin Django en français, commande `gwiriek`, serveur MCP.
-
-Les vérifications périodiques ont leur modèle de données, sans écran ni commande de saisie.
 
 ## Installation
 
@@ -61,6 +69,10 @@ La configuration passe par des variables d'environnement `GWIRIEK_*`, décrites 
 cp .env.example .env
 uv run --env-file .env gwiriek articles list
 ```
+
+Les e-mails passent par `GWIRIEK_EMAIL_BACKEND` (par défaut la console, qui les affiche au
+lieu de les envoyer) et les variables `GWIRIEK_EMAIL_*` ; les destinataires des alertes par
+`GWIRIEK_ALERT_RECIPIENTS`.
 
 Sans `GWIRIEK_DATABASE_URL`, la base est le fichier SQLite `db.sqlite3` du projet. Sans
 `GWIRIEK_SECRET_KEY`, une clé éphémère est générée : la CLI et le serveur MCP fonctionnent,
@@ -85,6 +97,19 @@ uv run gwiriek articles add --model 1 --serial 24F0001111 --manufactured 2024-06
 uv run gwiriek articles status DEMO-H01 quarantine --reason "Chute"
 uv run gwiriek articles assign DEMO-H01 --person 2      # ou --site NOM, ou --stock [LIEU]
 uv run gwiriek due --within 90
+uv run gwiriek inspectors add --person 1 --authorized-on 2026-01-15 --reference "HAB-2026-01" \
+    --valid-until 2028-01-14 --all-families
+uv run gwiriek inspectors add --name "Erwan Morvan" --organisation "Bureau de vérification" \
+    --authorized-on 2026-03-01 --reference "Contrat VGP" --family harness --family rope
+uv run gwiriek inspectors export > verificateurs.csv
+uv run gwiriek inspections add DEMO-H02 --inspector 1 --decision valid \
+    --point 1=ok --point 2=ok --point 3=ok --point 4=ok --point 5=ok --point 6=ok \
+    --point "Test de fonctionnement des boucles de réglage=ok"
+uv run gwiriek inspections add DEMO-R02 --inspector 2 --decision quarantine --comment "Gaine usée" \
+    --point 1=ok --point 2=nok --point 3=ok --point 4=ok \
+    --report-received 2026-11-20 --archive-location "Classeur VGP 2026"
+uv run gwiriek inspections list --item DEMO-H02 --since 2026-01-01
+uv run gwiriek notify --within 30
 uv run gwiriek catalog models --family rope
 uv run gwiriek catalog add-model --manufacturer Petzl --name "AVAO BOD FAST" \
     --family harness --standard "EN 361" --lifetime-months 120
@@ -98,7 +123,12 @@ uv run gwiriek people list
 | `articles add` | enregistrer un article |
 | `articles status` | changer le statut (motif obligatoire pour quarantaine et rebut) |
 | `articles assign` | affecter à une personne, un chantier ou au stock |
-| `due` | fins de vie dépassées, proches, ou à déterminer manuellement |
+| `due` | fins de vie et vérifications dépassées ou proches, fins de vie à déterminer ; `--inspections-only` |
+| `inspectors list`, `show`, `add` | vérificateurs et leur habilitation |
+| `inspectors export` | liste des personnes qualifiées en CSV (R4323-100), ou JSON avec `--json` |
+| `inspections add` | enregistrer une vérification (`--point POINT=ok\|nok\|na`, par texte ou numéro) |
+| `inspections list`, `show` | historique des vérifications, filtrable par article, date, vérificateur |
+| `notify` | envoyer le récapitulatif des échéances par e-mail |
 | `catalog manufacturers`, `models`, `show` | lire le catalogue |
 | `catalog add-manufacturer`, `add-model` | compléter le catalogue |
 | `people list`, `people add` | personnes |
@@ -117,7 +147,7 @@ un objet `{"error": {...}}` sur la sortie d'erreur.
 | 0 | succès |
 | 1 | erreur métier : introuvable, donnée invalide, opération interdite |
 | 2 | erreur d'utilisation (arguments) |
-| 3 | `due --check` : au moins un article dépassé ou à échéance (utile en tâche cron) |
+| 3 | `due --check` : au moins un article dépassé ou à échéance, fin de vie ou vérification |
 
 ## Serveur MCP
 
@@ -128,12 +158,22 @@ construit avec le SDK Python officiel.
 |---|---|
 | `search_items` | rechercher des articles (texte, statuts, famille, personne) |
 | `get_item` | fiche de vie complète d'un article |
-| `list_due_items` | fins de vie dépassées, proches ou indéterminées |
+| `list_due_items` | fins de vie et vérifications dépassées ou proches, fins de vie indéterminées |
+| `list_inspections_due` | vérifications en retard ou à échéance |
+| `list_inspectors` | vérificateurs, habilitation et périmètre |
+| `get_inspection_history` | vérifications d'un article |
 | `list_manufacturers` | fabricants |
 | `search_product_models` | rechercher dans le catalogue |
 | `get_product_model` | modèle : durées de vie et source, notices, points de contrôle |
 | `list_people` | personnes |
-| `create_item` | enregistrer un article (auteur `mcp` dans le journal d'audit) |
+| `create_item` | enregistrer un article |
+| `record_inspection` | enregistrer une vérification et appliquer sa décision au statut |
+| `change_item_status` | changer le statut d'un article, motif obligatoire |
+| `assign_item` | affecter un article à une personne, un chantier ou au stock |
+
+Les écritures sont attribuées à `mcp` dans le journal d'audit. `record_inspection` ne joint pas
+de fichier : pour un vérificateur externe, donnez la date de réception et le lieu d'archivage du
+rapport, ou joignez-le depuis l'admin.
 
 Aucun outil ne supprime de données. Les erreurs métier reviennent comme erreurs d'outil
 (`isError: true`) avec un message lisible par le modèle.
@@ -159,7 +199,7 @@ Passez la base de données explicitement dans `env` : les clients ne transmetten
 pas votre environnement au processus qu'ils lancent.
 
 > **Sécurité** : le transport stdio donne à quiconque lance le processus un accès complet à la
-> base, en lecture et en création. Ne le branchez qu'à des clients de confiance, sur la
+> base, en lecture et en écriture (sans suppression). Ne le branchez qu'à des clients de confiance, sur la
 > machine qui héberge la base. Un transport HTTP avec authentification est prévu pour un
 > accès distant.
 
@@ -182,6 +222,87 @@ utilisation ni remis en dotation.
 **Ces résultats sont indicatifs et toujours à confirmer selon la notice du fabricant.** Les
 durées de vie des données de démonstration citent leur source et sont données à titre
 indicatif.
+
+## Vérifications périodiques
+
+Les EPI contre les chutes de hauteur, en service ou en stock, doivent avoir été vérifiés depuis
+moins de 12 mois (R4323-99, arrêté du 19 mars 1993) par une personne qualifiée (R4323-100).
+
+**Vérificateurs.** Un vérificateur interne est une personne de l'entreprise ; un externe a un
+nom et un organisme. Il ne peut enregistrer une vérification que s'il est actif, que son
+habilitation écrite (référence ou document) a commencé et n'a pas expiré, le jour de la
+vérification comme le jour de l'enregistrement, et que la famille de l'article est dans son
+périmètre. On désactive un vérificateur, on ne le supprime pas.
+
+**Saisie.** Depuis la fiche d'un article dans l'admin (« Enregistrer une vérification »), la
+CLI ou l'outil MCP `record_inspection` :
+
+- chaque point de contrôle du modèle reçoit un résultat : conforme, non conforme ou sans objet ;
+  les points et le vérificateur sont figés dans l'enregistrement ;
+- un point non conforme n'autorise que la quarantaine ou le rebut ; un article qui a dépassé sa
+  fin de vie aussi ;
+- un commentaire est obligatoire sauf pour la décision « valide », et quand le modèle n'a pas
+  de points de contrôle ;
+- pour un vérificateur externe, le rapport est joint, ou sa date de réception et son lieu
+  d'archivage sont indiqués (R4323-102) ;
+- un article rebuté n'est plus vérifié ; une vérification ne peut pas être antérieure à la
+  précédente.
+
+**Décision et statut.** Le statut est mis à jour et inscrit au journal d'audit : valide laisse un
+article en stock ou en service, remet en service un article à surveiller, et sort de quarantaine
+vers le service s'il est encore affecté à une personne ou un chantier, vers le stock sinon ; à
+surveiller → `watch` ; quarantaine → `quarantine` ; rebut → `retired`.
+
+**Prochaine échéance.** Date de vérification + intervalle du modèle (12 mois au plus), plus tôt
+si le vérificateur le demande, jamais après la fin de vie ; aucune après un rebut.
+
+**Article jamais vérifié.** L'échéance part de la plus ancienne des dates de mise en service et
+d'achat ; sans aucune des deux, la vérification est due immédiatement.
+
+Une vérification enregistrée n'est pas modifiable : on corrige par une nouvelle vérification.
+
+## Alertes par e-mail
+
+`gwiriek notify` envoie aux adresses de `GWIRIEK_ALERT_RECIPIENTS` le récapitulatif des articles
+en retard ou à échéance (30 jours par défaut, `--within`), stock compris. Rien n'est envoyé
+quand rien n'est dû, ni quand le même récapitulatif a déjà été envoyé le jour même, sauf avec
+`--force`. Les envois sont tracés dans l'admin (« Récapitulatifs par e-mail »).
+
+Exemple de tâche cron, chaque jour ouvré à 7 h :
+
+```cron
+0 7 * * 1-5  cd /opt/gwiriek && uv run --env-file .env gwiriek notify
+```
+
+Exemple de timer systemd, `/etc/systemd/system/gwiriek-notify.service` :
+
+```ini
+[Unit]
+Description=Gwiriek: e-mail digest of PPE deadlines
+
+[Service]
+Type=oneshot
+User=gwiriek
+WorkingDirectory=/opt/gwiriek
+EnvironmentFile=/opt/gwiriek/.env
+ExecStart=/usr/local/bin/uv run gwiriek notify
+```
+
+et `/etc/systemd/system/gwiriek-notify.timer` :
+
+```ini
+[Unit]
+Description=Daily Gwiriek digest
+
+[Timer]
+OnCalendar=Mon..Fri 07:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Activation : `systemctl enable --now gwiriek-notify.timer`.
 
 ## Développement
 

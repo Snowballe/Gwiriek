@@ -9,6 +9,12 @@ from gwiriek.equipment.services import catalog, items, people
 from gwiriek.equipment.services.end_of_life import add_months
 
 
+@pytest.fixture(autouse=True)
+def media_root(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path / "media"
+    return settings.MEDIA_ROOT
+
+
 @pytest.fixture
 def today() -> date:
     return timezone.localdate()
@@ -82,3 +88,39 @@ def make_item(db):
         return items.create_item(product_model_id=model.id, actor="test", **fields)
 
     return _make_item
+
+
+@pytest.fixture
+def inspector(person, months_ago):
+    from gwiriek.equipment.models import Family
+    from gwiriek.equipment.services import inspectors
+
+    return inspectors.create_inspector(
+        kind="internal",
+        person_id=person.id,
+        authorized_on=months_ago(24),
+        authorization_reference="HAB-1",
+        families=Family.values,
+    )
+
+
+@pytest.fixture
+def external_inspector(db, months_ago):
+    from gwiriek.equipment.services import inspectors
+
+    return inspectors.create_inspector(
+        kind="external",
+        name="Erwan Morvan",
+        organisation="Bureau",
+        authorized_on=months_ago(24),
+        authorization_reference="Contrat",
+        families=["harness", "rope"],
+    )
+
+
+@pytest.fixture
+def all_ok():
+    def _all_ok(model):
+        return dict.fromkeys(model.checklist, "ok")
+
+    return _all_ok

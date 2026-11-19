@@ -11,12 +11,14 @@ from enum import Enum
 from typing import Any
 
 from gwiriek.equipment import models
+from gwiriek.equipment.services._common import today as current_date
 from gwiriek.equipment.services.end_of_life import (
     DISCLAIMER,
     EndOfLife,
     LifespanRule,
     compute_end_of_life,
 )
+from gwiriek.equipment.services.periodicity import InspectionDeadline, inspection_deadline
 
 
 @dataclass(frozen=True)
@@ -137,6 +139,77 @@ class ItemSummary:
     end_of_life: date | None
     end_of_life_basis: str
     assigned_to: str | None
+    next_inspection_due_on: date | None
+    inspection_overdue: bool
+
+
+@dataclass(frozen=True)
+class InspectorView:
+    """A qualified person allowed to carry out periodic inspections (R4323-100).
+
+    ``qualified`` and ``issues`` describe the authorization as of ``as_of``: issue codes are
+    ``inactive``, ``not_authorized``, ``not_yet_valid``, ``expired``, ``no_scope`` and
+    ``person_inactive``.
+    """
+
+    id: int
+    kind: str
+    name: str
+    person_id: int | None
+    organisation: str
+    authorized_on: date | None
+    authorization_reference: str
+    authorization_document: str
+    authorization_valid_until: date | None
+    families: list[str]
+    active: bool
+    notes: str
+    as_of: date
+    qualified: bool
+    issues: list[str]
+
+
+@dataclass(frozen=True)
+class ChecklistResultView:
+    """One checklist point as it was when the inspection was recorded."""
+
+    point: str
+    result: str
+
+
+@dataclass(frozen=True)
+class InspectionView:
+    """A recorded periodic inspection; immutable."""
+
+    id: int
+    item_id: int
+    item: str
+    inspected_on: date
+    inspector_id: int
+    inspector: str
+    inspector_kind: str
+    inspector_snapshot: dict[str, Any]
+    decision: str
+    checklist: list[ChecklistResultView]
+    comment: str
+    next_due_on: date | None
+    report: str
+    report_received_on: date | None
+    report_archive_location: str
+    resulting_status: str
+    actor: str
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class InspectionDeadlineView:
+    """When an item's next periodic inspection is due, and what it is counted from."""
+
+    due_on: date | None
+    reference: str
+    last_inspected_on: date | None
+    days_remaining: int | None
+    overdue: bool
 
 
 @dataclass(frozen=True)
@@ -165,22 +238,44 @@ class ItemDetail:
     current_assignment: AssignmentView | None
     assignments: list[AssignmentView]
     status_history: list[StatusChangeView]
+    next_inspection: InspectionDeadlineView
+    inspections: list[InspectionView]
 
 
 @dataclass(frozen=True)
 class DueItem:
-    """An item whose end of life is passed, near, or cannot be determined."""
+    """An item with a deadline passed or near, or an end of life to determine by hand.
+
+    ``end_of_life``, ``days_remaining``, ``basis`` and ``missing`` describe the end of life;
+    ``inspection_*`` the periodic inspection; ``deadline`` is the nearest of both and
+    ``deadline_kind`` says which (``end_of_life`` or ``inspection``). ``reasons`` lists
+    what makes the item due: ``end_of_life_passed``, ``end_of_life_near``,
+    ``inspection_overdue``, ``inspection_near``, ``end_of_life_undetermined``.
+    """
 
     item: ItemSummary
     end_of_life: date | None
     days_remaining: int | None
     basis: str
     missing: list[str]
+    inspection_due_on: date | None
+    inspection_days_remaining: int | None
+    inspection_reference: str
+    last_inspected_on: date | None
+    deadline: date | None
+    deadline_kind: str | None
+    deadline_days_remaining: int | None
+    reasons: list[str]
 
 
 @dataclass(frozen=True)
 class DueReport:
-    """Items to act on, as of a given day."""
+    """Items to act on, as of a given day.
+
+    ``overdue`` and ``upcoming`` are exclusive and sorted by nearest deadline;
+    ``undetermined`` lists items whose end of life must be checked by hand, whatever their
+    inspection deadline, so an item can also appear in one of the other two lists.
+    """
 
     as_of: date
     within_days: int
@@ -188,6 +283,22 @@ class DueReport:
     upcoming: list[DueItem]
     undetermined: list[DueItem]
     disclaimer: str
+
+
+@dataclass(frozen=True)
+class DigestResult:
+    """Outcome of an e-mail digest run.
+
+    ``status`` is ``sent``, ``already_sent`` (same digest already sent today) or
+    ``nothing_due``.
+    """
+
+    as_of: date
+    status: str
+    recipients: list[str]
+    subject: str
+    item_count: int
+    fingerprint: str
 
 
 # --- Builders -------------------------------------------------------------------------------
@@ -209,7 +320,38 @@ def item_end_of_life(item: models.Item) -> EndOfLife:
         lifespan_rule(item.product_model),
         item.manufactured_on,
         item.in_service_on,
-        commissioned=item.in_service_on is not None or item.status != models.ItemStatus.IN_STOCK,
+        # Only a known service date or an in-use status means the item left storage: a
+        # quarantined or retired item without a service date keeps its storage limit.
+        commissioned=item.in_service_on is not None
+        or item.status in (models.ItemStatus.IN_SERVICE, models.ItemStatus.WATCH),
+    )
+
+
+def latest_inspection(item: models.Item) -> models.Inspection | None:
+    """Return the item's latest inspection, using prefetched data when available."""
+    return next(iter(item.inspections.all()), None)
+
+
+def item_inspection_deadline(item: models.Item) -> InspectionDeadline:
+    """Compute when the item's next periodic inspection is due."""
+    last = latest_inspection(item)
+    return inspection_deadline(
+        last_inspected_on=last.inspected_on if last else None,
+        last_next_due=last.next_due_on if last else None,
+        in_service_on=item.in_service_on,
+        purchased_on=item.purchased_on,
+        model_interval=item.product_model.inspection_interval_months,
+    )
+
+
+def inspection_deadline_view(deadline: InspectionDeadline, today: date) -> InspectionDeadlineView:
+    """Present an inspection deadline relative to ``today``."""
+    return InspectionDeadlineView(
+        due_on=deadline.due_on,
+        reference=deadline.reference.value,
+        last_inspected_on=deadline.last_inspected_on,
+        days_remaining=deadline.days_remaining(today),
+        overdue=deadline.is_overdue(today),
     )
 
 
@@ -292,6 +434,74 @@ def person_view(person: models.Person) -> PersonView:
     )
 
 
+def inspector_issues(inspector: models.Inspector, on: date) -> list[str]:
+    """List why an inspector may not inspect on ``on`` (empty when qualified)."""
+    issues = []
+    if not inspector.active:
+        issues.append("inactive")
+    if inspector.person_id is not None and not inspector.person.active:  # type: ignore[union-attr]
+        issues.append("person_inactive")
+    if inspector.authorized_on is None:
+        issues.append("not_authorized")
+    elif inspector.authorized_on > on:
+        issues.append("not_yet_valid")
+    if inspector.authorization_valid_until is not None and inspector.authorization_valid_until < on:
+        issues.append("expired")
+    if not inspector.families:
+        issues.append("no_scope")
+    return issues
+
+
+def inspector_view(inspector: models.Inspector, on: date) -> InspectorView:
+    """Build an inspector view, with its qualification as of ``on``."""
+    issues = inspector_issues(inspector, on)
+    return InspectorView(
+        id=inspector.pk,
+        kind=inspector.kind,
+        name=inspector.display_name,
+        person_id=inspector.person_id,
+        organisation=inspector.organisation,
+        authorized_on=inspector.authorized_on,
+        authorization_reference=inspector.authorization_reference,
+        authorization_document=inspector.authorization_document.name or "",
+        authorization_valid_until=inspector.authorization_valid_until,
+        families=list(inspector.families),
+        active=inspector.active,
+        notes=inspector.notes,
+        as_of=on,
+        qualified=not issues,
+        issues=issues,
+    )
+
+
+def inspection_view(inspection: models.Inspection) -> InspectionView:
+    """Build an inspection view (select ``item`` and ``inspector`` for lists)."""
+    snapshot = dict(inspection.inspector_snapshot)
+    return InspectionView(
+        id=inspection.pk,
+        item_id=inspection.item_id,
+        item=str(inspection.item),
+        inspected_on=inspection.inspected_on,
+        inspector_id=inspection.inspector_id,
+        inspector=str(snapshot.get("name") or inspection.inspector),
+        inspector_kind=str(snapshot.get("kind") or inspection.inspector.kind),
+        inspector_snapshot=snapshot,
+        decision=inspection.decision,
+        checklist=[
+            ChecklistResultView(point=str(r["point"]), result=str(r["result"]))
+            for r in inspection.checklist_results
+        ],
+        comment=inspection.comment,
+        next_due_on=inspection.next_due_on,
+        report=inspection.report.name or "",
+        report_received_on=inspection.report_received_on,
+        report_archive_location=inspection.report_archive_location,
+        resulting_status=inspection.resulting_status,
+        actor=inspection.actor,
+        created_at=inspection.created_at,
+    )
+
+
 def assignment_view(assignment: models.Assignment) -> AssignmentView:
     """Build an assignment view."""
     return AssignmentView(
@@ -319,9 +529,18 @@ def open_assignment(item: models.Item) -> models.Assignment | None:
     return next((a for a in item.assignments.all() if a.ended_on is None), None)
 
 
-def item_summary(item: models.Item) -> ItemSummary:
-    """Build an item summary (select ``product_model__manufacturer``, prefetch assignments)."""
+def item_summary(item: models.Item, today: date | None = None) -> ItemSummary:
+    """Build an item summary (select the manufacturer, prefetch assignments, inspections).
+
+    Args:
+        item: The item.
+        today: Reference day for ``inspection_overdue``, defaults to today.
+
+    Returns:
+        The summary.
+    """
     eol = item_end_of_life(item)
+    deadline = item_inspection_deadline(item)
     pm = item.product_model
     return ItemSummary(
         id=item.pk,
@@ -336,6 +555,8 @@ def item_summary(item: models.Item) -> ItemSummary:
         end_of_life=eol.date,
         end_of_life_basis=eol.basis.value,
         assigned_to=_assignment_label(open_assignment(item)),
+        next_inspection_due_on=deadline.due_on,
+        inspection_overdue=deadline.is_overdue(today or current_date()),
     )
 
 
@@ -379,6 +600,13 @@ def item_detail(item: models.Item, today: date) -> ItemDetail:
                 reason=c.reason,
             )
             for c in item.status_changes.all()
+        ],
+        next_inspection=inspection_deadline_view(item_inspection_deadline(item), today),
+        inspections=[
+            inspection_view(i)
+            for i in item.inspections.select_related(
+                "item__product_model__manufacturer", "inspector__person"
+            )
         ],
     )
 

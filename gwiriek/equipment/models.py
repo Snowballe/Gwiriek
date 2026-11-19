@@ -61,6 +61,21 @@ class InspectionDecision(models.TextChoices):
     RETIRE = "retire", _("Retire")
 
 
+class CheckResult(models.TextChoices):
+    """Result of one checklist point."""
+
+    OK = "ok", _("Compliant")
+    NOK = "nok", _("Not compliant")
+    NA = "na", _("Not applicable")
+
+
+class InspectorKind(models.TextChoices):
+    """Whether a qualified person belongs to the company (R4323-100)."""
+
+    INTERNAL = "internal", _("Internal")
+    EXTERNAL = "external", _("External")
+
+
 class Manufacturer(models.Model):
     """Equipment manufacturer (Copalme field 3: manufacturer and contact details)."""
 
@@ -419,11 +434,131 @@ class Attachment(models.Model):
         return self.description or self.file.name or ""
 
 
-class Inspection(models.Model):
-    """Periodic inspection record (Copalme fields 8-11, R4323-100 to 102).
+def _validate_families(value: Any) -> None:
+    """Ensure a scope is a list of known, distinct families."""
+    if (
+        not isinstance(value, list)
+        or not all(isinstance(f, str) and f in Family.values for f in value)
+        or len(set(value)) != len(value)
+    ):
+        raise ValidationError(_("The scope must be a list of distinct, known families."))
 
-    Data model only: the inspection workflow (services, checklist entry, signature, status
-    update from the decision) is step 2 and not implemented yet.
+
+def authorization_path(instance: "Inspector", filename: str) -> str:
+    """Store written authorizations under a directory per inspector."""
+    return f"inspectors/{filename}"
+
+
+class Inspector(models.Model):
+    """A qualified person allowed to carry out periodic inspections (R4323-100).
+
+    An internal inspector is one of the company's people; an external one is named with
+    their organisation. The written authorization (date, reference or document, optional
+    end of validity) and the scope of families decide what they may inspect; the rules are
+    in :mod:`gwiriek.equipment.services.inspectors`.
+    """
+
+    kind = models.CharField(_("type"), max_length=10, choices=InspectorKind.choices)
+    person = models.OneToOneField(
+        Person,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="inspector",
+        verbose_name=_("person"),
+        help_text=_("Internal inspectors only."),
+    )
+    name = models.CharField(
+        _("name"), max_length=150, blank=True, help_text=_("External inspectors only.")
+    )
+    organisation = models.CharField(
+        _("organisation"), max_length=150, blank=True, help_text=_("External inspectors only.")
+    )
+    authorized_on = models.DateField(
+        _("authorization date"),
+        null=True,
+        blank=True,
+        help_text=_("Date of the written authorization; none means not authorized."),
+    )
+    authorization_reference = models.CharField(
+        _("authorization reference"),
+        max_length=200,
+        blank=True,
+        help_text=_("Reference of the written authorization, training or certificate."),
+    )
+    authorization_document = models.FileField(
+        _("authorization document"), upload_to=authorization_path, blank=True
+    )
+    authorization_valid_until = models.DateField(
+        _("authorization valid until"),
+        null=True,
+        blank=True,
+        help_text=_("Last day of validity, if the authorization expires."),
+    )
+    families = models.JSONField(
+        _("scope (families)"),
+        default=list,
+        blank=True,
+        validators=[_validate_families],
+        help_text=_("Families of equipment this person may inspect."),
+    )
+    active = models.BooleanField(_("active"), default=True)
+    notes = models.TextField(_("notes"), blank=True)
+
+    class Meta:
+        verbose_name = _("inspector")
+        verbose_name_plural = _("inspectors")
+        ordering: ClassVar = ["id"]
+        constraints: ClassVar = [
+            models.CheckConstraint(
+                condition=(Q(kind="internal") & Q(person__isnull=False))
+                | (Q(kind="external") & Q(person__isnull=True) & ~Q(name="")),
+                name="inspector_identity_matches_kind",
+            ),
+            models.CheckConstraint(
+                condition=Q(authorization_valid_until__isnull=True)
+                | Q(authorized_on__isnull=False),
+                name="inspector_validity_needs_authorization",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.display_name
+
+    @property
+    def display_name(self) -> str:
+        """Name shown in lists and frozen into inspection records."""
+        if self.kind == InspectorKind.INTERNAL and self.person_id is not None:
+            return str(self.person)
+        if self.organisation:
+            return f"{self.name} ({self.organisation})"
+        return self.name
+
+
+class InspectionQuerySet(models.QuerySet["Inspection"]):
+    """QuerySet that refuses bulk updates and deletions of inspection records."""
+
+    def update(self, **kwargs: Any) -> int:
+        """Refuse: inspection records are immutable."""
+        raise PermissionError("Inspections cannot be modified.")
+
+    def delete(self) -> tuple[int, dict[str, int]]:
+        """Refuse: inspection records are immutable."""
+        raise PermissionError("Inspections cannot be deleted.")
+
+
+def inspection_report_path(instance: "Inspection", filename: str) -> str:
+    """Store inspection reports under a directory per item."""
+    return f"inspections/{instance.item_id}/{filename}"
+
+
+class Inspection(models.Model):
+    """Immutable periodic inspection record (Copalme fields 8-13, R4323-100 to 102).
+
+    The checklist and the inspector's identity are frozen at recording time, so later
+    changes to the catalogue or to the inspector do not rewrite history. A mistake is
+    corrected by recording a new inspection. Created only by
+    :func:`gwiriek.equipment.services.inspections.record_inspection`.
     """
 
     item = models.ForeignKey(
@@ -431,46 +566,91 @@ class Inspection(models.Model):
     )
     inspected_on = models.DateField(_("inspection date"))
     inspector = models.ForeignKey(
-        Person,
+        Inspector,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name="inspections",
-        verbose_name=_("internal inspector"),
+        verbose_name=_("inspector"),
     )
-    external_inspector = models.CharField(
-        _("external inspector"),
-        max_length=200,
-        blank=True,
-        help_text=_("Name and company of an external qualified person."),
+    inspector_snapshot = models.JSONField(
+        _("inspector at the time"),
+        default=dict,
+        help_text=_("Identity and authorization of the inspector when the record was made."),
     )
     decision = models.CharField(_("decision"), max_length=20, choices=InspectionDecision.choices)
-    checklist_results = models.JSONField(_("checklist results"), default=list, blank=True)
-    observations = models.TextField(_("observations"), blank=True)
-    next_due_on = models.DateField(_("next inspection due"))
-    report = models.FileField(_("report"), upload_to="inspections/", blank=True)
+    checklist_results = models.JSONField(
+        _("checklist results"),
+        default=list,
+        blank=True,
+        help_text=_("Points of the model's checklist, frozen, with their result."),
+    )
+    comment = models.TextField(_("comment"), blank=True)
+    next_due_on = models.DateField(_("next inspection due"), null=True, blank=True)
+    report = models.FileField(_("report"), upload_to=inspection_report_path, blank=True)
+    report_received_on = models.DateField(
+        _("report received on"),
+        null=True,
+        blank=True,
+        help_text=_("Date an external report was handed over, when it is not attached."),
+    )
     report_archive_location = models.CharField(
         _("report archive location"),
         max_length=200,
         blank=True,
         help_text=_("Where an external report is archived, when it is not attached."),
     )
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    resulting_status = models.CharField(
+        _("resulting status"), max_length=20, choices=ItemStatus.choices
+    )
+    actor = models.CharField(_("recorded by"), max_length=150)
+    created_at = models.DateTimeField(_("recorded at"), auto_now_add=True)
+
+    objects = InspectionQuerySet.as_manager()
 
     class Meta:
         verbose_name = _("inspection")
         verbose_name_plural = _("inspections")
-        ordering: ClassVar = ["item", "-inspected_on"]
+        ordering: ClassVar = ["item", "-inspected_on", "-id"]
         constraints: ClassVar = [
             models.CheckConstraint(
-                condition=Q(inspector__isnull=False) | ~Q(external_inspector=""),
-                name="inspection_has_inspector",
+                condition=Q(next_due_on__isnull=True) | Q(next_due_on__gt=models.F("inspected_on")),
+                name="inspection_next_due_after_date",
             ),
             models.CheckConstraint(
-                condition=Q(next_due_on__gt=models.F("inspected_on")),
-                name="inspection_next_due_after_date",
+                condition=~Q(decision="retire") | Q(next_due_on__isnull=True),
+                name="inspection_retired_has_no_next_due",
             ),
         ]
 
     def __str__(self) -> str:
         return f"{self.item} {self.inspected_on}"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Insert only; an existing record cannot be modified."""
+        if self.pk is not None:
+            raise PermissionError("Inspections cannot be modified.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        """Refuse: inspection records are immutable."""
+        raise PermissionError("Inspections cannot be deleted.")
+
+
+class DigestLog(models.Model):
+    """Record of a due-items digest sent by e-mail, to avoid sending it twice a day."""
+
+    sent_on = models.DateField(_("day"))
+    fingerprint = models.CharField(_("fingerprint"), max_length=64)
+    subject = models.CharField(_("subject"), max_length=200)
+    recipients = models.TextField(_("recipients"))
+    item_count = models.PositiveIntegerField(_("items"))
+    forced = models.BooleanField(_("forced"), default=False)
+    sent_at = models.DateTimeField(_("sent at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("e-mail digest")
+        verbose_name_plural = _("e-mail digests")
+        ordering: ClassVar = ["-sent_at"]
+        indexes: ClassVar = [models.Index(fields=["sent_on", "fingerprint"])]
+
+    def __str__(self) -> str:
+        return f"{self.sent_on} {self.subject}"

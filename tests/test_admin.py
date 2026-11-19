@@ -3,7 +3,7 @@
 import pytest
 from django.urls import reverse
 
-from gwiriek.equipment.models import Item, StatusChange
+from gwiriek.equipment.models import Inspection, Inspector, Item, StatusChange
 
 
 def form_data(response):
@@ -158,3 +158,140 @@ def test_product_model_checklist_lines(admin_client, petzl):
     from gwiriek.equipment.models import ProductModel
 
     assert ProductModel.objects.get(name="NEWTON").checklist == ["Sangles", "Coutures"]
+
+
+# --- Inspectors and inspections ----------------------------------------------------------
+
+
+def test_inspection_changelists_render(admin_client, inspector, item):
+    for model in ("inspector", "inspection", "digestlog"):
+        response = admin_client.get(reverse(f"admin:equipment_{model}_changelist"))
+        assert response.status_code == 200, model
+
+
+def test_item_page_links_to_inspection_entry(admin_client, item):
+    response = admin_client.get(reverse("admin:equipment_item_change", args=[item.id]))
+    content = response.content.decode()
+    assert "Enregistrer une vérification" in content
+    assert reverse("admin:equipment_inspection_add") + f"?item={item.id}" in content
+    assert "Due maintenant" in content  # never inspected, no date of entry
+
+
+@pytest.fixture
+def fresh(harness_model, make_item, months_ago):
+    return make_item(harness_model, label="H-3", manufactured_on=months_ago(6))
+
+
+def inspection_data(item, inspector, **fields):
+    data = {
+        "item": item.id,
+        "inspector": inspector.id,
+        "inspected_on": fields.pop("inspected_on", ""),
+        "decision": "valid",
+        "comment": "",
+        "next_due_on": "",
+        "report_received_on": "",
+        "report_archive_location": "",
+        "point_1": "ok",
+        "point_2": "ok",
+    }
+    data.update(fields)
+    return data
+
+
+def test_inspection_form_has_checklist(admin_client, fresh):
+    url = reverse("admin:equipment_inspection_add") + f"?item={fresh.id}"
+    response = admin_client.get(url)
+    content = response.content.decode()
+    assert response.status_code == 200
+    assert "Sangles" in content
+    assert "Coutures" in content
+    assert 'name="point_1"' in content
+    assert "Non conforme" in content
+    response = admin_client.get(reverse("admin:equipment_inspection_add"))
+    assert 'name="point_1"' not in response.content.decode()
+
+
+def test_record_inspection_from_admin(admin_client, fresh, inspector, today):
+    url = reverse("admin:equipment_inspection_add") + f"?item={fresh.id}"
+    data = inspection_data(fresh, inspector, inspected_on=today.isoformat(), point_2="na")
+    response = admin_client.post(url, data)
+    assert response.status_code == 302, response.context["adminform"].form.errors
+    assert response["Location"] == reverse("admin:equipment_item_change", args=[fresh.id])
+    inspection = Inspection.objects.get()
+    assert inspection.actor == "admin:admin"
+    assert inspection.checklist_results == [
+        {"point": "Sangles", "result": "ok"},
+        {"point": "Coutures", "result": "na"},
+    ]
+
+    view_url = reverse("admin:equipment_inspection_change", args=[inspection.pk])
+    response = admin_client.get(view_url)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "[Sans objet] Coutures" in content
+    assert "HAB-1" in content
+    assert admin_client.post(view_url, {"comment": "x"}).status_code == 403
+    delete_url = reverse("admin:equipment_inspection_delete", args=[inspection.pk])
+    assert admin_client.get(delete_url).status_code == 403
+
+
+def test_inspection_rules_from_admin(admin_client, fresh, inspector, today):
+    url = reverse("admin:equipment_inspection_add") + f"?item={fresh.id}"
+    data = inspection_data(fresh, inspector, inspected_on=today.isoformat(), point_1="nok")
+    response = admin_client.post(url, data)
+    assert response.status_code == 200
+    assert "quarantaine" in str(response.context["adminform"].form.errors)
+    data["decision"] = "quarantine"
+    response = admin_client.post(url, data)
+    assert response.status_code == 200
+    assert "comment" in response.context["adminform"].form.errors
+    data["comment"] = "Coupure"
+    response = admin_client.post(url, data)
+    assert response.status_code == 302
+    assert Item.objects.get(pk=fresh.id).status == "quarantine"
+    change = StatusChange.objects.filter(item_id=fresh.id).latest("id")
+    assert change.actor == "admin:admin"
+    assert "Coupure" in change.reason
+
+
+def test_inspection_missing_point_from_admin(admin_client, fresh, inspector, today):
+    url = reverse("admin:equipment_inspection_add") + f"?item={fresh.id}"
+    data = inspection_data(fresh, inspector, inspected_on=today.isoformat())
+    del data["point_2"]
+    response = admin_client.post(url, data)
+    assert response.status_code == 200
+    assert not Inspection.objects.exists()
+
+
+def test_inspector_admin(admin_client, person, months_ago):
+    url = reverse("admin:equipment_inspector_add")
+    base = {
+        "kind": "internal",
+        "name": "",
+        "organisation": "",
+        "authorized_on": months_ago(1).isoformat(),
+        "authorization_reference": "HAB-9",
+        "authorization_valid_until": "",
+        "families": ["harness", "rope"],
+        "active": "on",
+        "notes": "",
+    }
+    response = admin_client.post(url, base)
+    assert response.status_code == 200
+    assert "person" in response.context["adminform"].form.errors
+    response = admin_client.post(url, {**base, "person": person.id})
+    assert response.status_code == 302, response.context["adminform"].form.errors
+    created = Inspector.objects.get()
+    assert created.families == ["harness", "rope"]
+    response = admin_client.get(reverse("admin:equipment_inspector_changelist"))
+    assert "Yann Le Gall" in response.content.decode()
+    delete_url = reverse("admin:equipment_inspector_delete", args=[created.pk])
+    assert admin_client.get(delete_url).status_code == 403
+
+    response = admin_client.post(
+        reverse("admin:equipment_inspector_changelist"),
+        {"action": "export_csv", "_selected_action": [created.pk]},
+    )
+    assert response["Content-Type"].startswith("text/csv")
+    assert "HAB-9" in response.content.decode()

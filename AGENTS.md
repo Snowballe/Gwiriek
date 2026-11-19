@@ -33,8 +33,9 @@ uv run django-admin compilemessages --settings=gwiriek.settings
 | CLI | `gwiriek/cli.py` | `gwiriek` command: parses arguments, calls services, formats output |
 | MCP | `gwiriek/mcp_server.py` | MCP tools wrapping services (official `mcp` SDK v2, stdio) |
 
-Service modules: `end_of_life` (pure computation), `items`, `assignments`, `catalog`,
-`people`, `due`, `views` (dataclasses returned to callers), `errors`.
+Service modules: `end_of_life` and `periodicity` (pure computation), `items`,
+`assignments`, `catalog`, `people`, `inspectors`, `inspections`, `due`, `notifications`,
+`views` (dataclasses returned to callers), `errors`.
 
 ## Rules
 
@@ -42,6 +43,8 @@ Service modules: `end_of_life` (pure computation), `items`, `assignments`, `cata
   write items, statuses or assignments through the ORM directly.
 - Every item write goes through `services.items.save_item`, which records status changes in
   the append-only `StatusChange` log.
+- Inspections are append-only like `StatusChange`, created only by
+  `services.inspections.record_inspection`; a correction is a new inspection.
 - Services raise `ServiceError` subclasses for expected errors; the CLI maps them to exit
   code 1, the MCP server to tool errors.
 - New service output is a dataclass in `services/views.py`: it is the JSON contract of both

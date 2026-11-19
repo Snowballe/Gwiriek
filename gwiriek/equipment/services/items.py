@@ -11,6 +11,7 @@ from django.utils.translation import gettext as _
 from gwiriek.equipment.models import (
     Assignment,
     Family,
+    Inspection,
     Item,
     ItemStatus,
     ProductModel,
@@ -44,7 +45,8 @@ _ROPE_FIELDS = ("rope_diameter_mm", "rope_length_m", "rope_type", "rope_terminat
 def items_queryset() -> QuerySet[Item]:
     """Items with what summaries need, loaded in a fixed number of queries."""
     return Item.objects.select_related("product_model__manufacturer").prefetch_related(
-        Prefetch("assignments", queryset=Assignment.objects.select_related("person"))
+        Prefetch("assignments", queryset=Assignment.objects.select_related("person")),
+        Prefetch("inspections", queryset=Inspection.objects.order_by("-inspected_on", "-id")),
     )
 
 

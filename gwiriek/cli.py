@@ -5,6 +5,8 @@ arguments and formats output. ``--json`` prints machine-readable output on stdou
 
 Exit codes: 0 success, 1 business error (not found, invalid data, forbidden operation),
 2 usage error, 3 ``due --check`` found items to act on.
+
+``notify`` e-mails the digest of due items and is meant for cron or a systemd timer.
 """
 
 import argparse
@@ -61,6 +63,25 @@ def _non_negative(value: str) -> int:
     if number < 0:
         raise argparse.ArgumentTypeError("must be zero or more")
     return number
+
+
+def _point(value: str) -> tuple[str, str]:
+    """Parse a checklist result ``POINT=ok|nok|na`` (POINT is the text or the number)."""
+    point, sep, result = value.rpartition("=")
+    if not sep or not point.strip() or not result.strip():
+        raise argparse.ArgumentTypeError(f"invalid point {value!r}, expected POINT=ok|nok|na")
+    return point.strip(), result.strip()
+
+
+def _file(path: str) -> Any:
+    """Open a file to attach, as a Django ``File``."""
+    from django.core.files import File
+
+    try:
+        handle = open(path, "rb")  # noqa: SIM115 - closed when the command exits
+    except OSError as exc:
+        raise argparse.ArgumentTypeError(f"cannot open {path!r}: {exc.strerror}") from exc
+    return File(handle, name=os.path.basename(path))
 
 
 # --- Output ---------------------------------------------------------------------------------
@@ -193,6 +214,7 @@ def _print_item_detail(item: Any) -> None:
                 f"({_('since')} {_fmt_date(a.started_on)})",
             )
         )
+    fields.append((_("Next inspection"), _deadline_text(item.next_inspection)))
     if item.notes:
         fields.append((_("Notes"), item.notes))
     width = max(len(str(k)) for k, _v in fields)
@@ -225,6 +247,126 @@ def _print_item_detail(item: Any) -> None:
             for a in item.assignments
         ]
         print(_table(rows, [_("Target"), _("Who / where"), _("From"), _("Until"), _("By")]))
+    if item.inspections:
+        print(f"\n{_('Inspections')}")
+        _print_inspection_rows(item.inspections)
+
+
+def _deadline_text(deadline: Any) -> str:
+    from django.utils.translation import gettext as _
+
+    if deadline.due_on is None:
+        if deadline.overdue:
+            return _("now (never inspected, no date of entry)")
+        return "-"
+    text = _fmt_date(deadline.due_on)
+    if deadline.overdue:
+        return f"{text} {_('(passed)')}"
+    return f"{text} " + _("(in %(days)d days)") % {"days": deadline.days_remaining}
+
+
+def _print_inspection_rows(inspections: Sequence[Any]) -> None:
+    from django.utils.translation import gettext as _
+
+    from gwiriek.equipment.models import InspectionDecision, ItemStatus
+
+    rows = [
+        (
+            i.id,
+            _fmt_date(i.inspected_on),
+            i.item,
+            i.inspector,
+            _label(InspectionDecision, i.decision),
+            _label(ItemStatus, i.resulting_status),
+            _fmt_date(i.next_due_on),
+        )
+        for i in inspections
+    ]
+    headers = [
+        _("ID"),
+        _("Date"),
+        _("Item"),
+        _("Inspector"),
+        _("Decision"),
+        _("Status"),
+        _("Next inspection"),
+    ]
+    print(_table(rows, headers))
+
+
+def _print_inspection(i: Any) -> None:
+    from django.utils.translation import gettext as _
+
+    from gwiriek.equipment.models import CheckResult, InspectionDecision, ItemStatus
+
+    fields: list[tuple[str, Any]] = [
+        (_("ID"), i.id),
+        (_("Item"), f"{i.item} (#{i.item_id})"),
+        (_("Inspection date"), _fmt_date(i.inspected_on)),
+        (_("Inspector"), i.inspector),
+        (_("Decision"), _label(InspectionDecision, i.decision)),
+        (_("Resulting status"), _label(ItemStatus, i.resulting_status)),
+        (_("Next inspection"), _fmt_date(i.next_due_on)),
+        (_("Comment"), i.comment or "-"),
+    ]
+    if i.report:
+        fields.append((_("Report"), i.report))
+    if i.report_archive_location:
+        fields.append(
+            (
+                _("Report"),
+                _("received on %(date)s, archived at %(place)s")
+                % {"date": _fmt_date(i.report_received_on), "place": i.report_archive_location},
+            )
+        )
+    fields.append((_("Recorded by"), i.actor))
+    width = max(len(str(k)) for k, _v in fields)
+    for key, value in fields:
+        print(f"{str(key).ljust(width)}  {value}")
+    if i.checklist:
+        print(f"\n{_('Checklist')}")
+        for number, r in enumerate(i.checklist, 1):
+            print(f"  {number}. [{_label(CheckResult, r.result)}] {r.point}")
+
+
+def _print_inspectors(inspectors: Sequence[Any]) -> None:
+    from django.utils.translation import gettext as _
+
+    from gwiriek.equipment.models import Family, InspectorKind
+
+    rows = [
+        (
+            v.id,
+            v.name,
+            _label(InspectorKind, v.kind),
+            _fmt_date(v.authorized_on),
+            _fmt_date(v.authorization_valid_until),
+            ", ".join(_label(Family, f) for f in v.families) or "-",
+            _("yes") if v.qualified else _("no") + f" ({', '.join(v.issues)})",
+        )
+        for v in inspectors
+    ]
+    headers = [
+        _("ID"),
+        _("Name"),
+        _("Type"),
+        _("Authorized on"),
+        _("Valid until"),
+        _("Scope"),
+        _("Qualified"),
+    ]
+    print(_table(rows, headers))
+
+
+def _print_inspector(v: Any) -> None:
+    from django.utils.translation import gettext as _
+
+    _print_inspectors([v])
+    print()
+    print(f"{_('Authorization reference')}: {v.authorization_reference or '-'}")
+    print(f"{_('Authorization document')}: {v.authorization_document or '-'}")
+    if v.notes:
+        print(f"{_('Notes')}: {v.notes}")
 
 
 def _emit(args: argparse.Namespace, value: Any, human: Callable[[Any], None]) -> int:
@@ -314,6 +456,13 @@ def _print_due(report: Any) -> None:
 
     from gwiriek.equipment.models import ItemStatus
 
+    def inspection(e: Any) -> str:
+        if e.inspection_due_on is None:
+            return _("now") if "inspection_overdue" in e.reasons else "-"
+        return _fmt_date(e.inspection_due_on)
+
+    kinds = {"end_of_life": _("end of life"), "inspection": _("inspection")}
+
     def rows(entries: Sequence[Any]) -> list[tuple[Any, ...]]:
         return [
             (
@@ -322,7 +471,9 @@ def _print_due(report: Any) -> None:
                 f"{e.item.manufacturer} {e.item.product_model}",
                 _label(ItemStatus, e.item.status),
                 _eol_text(e.end_of_life, e.basis),
-                "-" if e.days_remaining is None else e.days_remaining,
+                inspection(e),
+                kinds.get(e.deadline_kind, "-"),
+                "-" if e.deadline_days_remaining is None else e.deadline_days_remaining,
                 ", ".join(e.missing) or "-",
             )
             for e in entries
@@ -334,12 +485,14 @@ def _print_due(report: Any) -> None:
         _("Model"),
         _("Status"),
         _("End of life"),
+        _("Inspection due"),
+        _("Nearest"),
         _("Days"),
         _("Missing data"),
     ]
     sections = [
-        (_("End of life passed"), report.overdue),
-        (_("End of life within %(days)d days") % {"days": report.within_days}, report.upcoming),
+        (_("Overdue (end of life or inspection)"), report.overdue),
+        (_("Due within %(days)d days") % {"days": report.within_days}, report.upcoming),
         (_("End of life to determine by hand"), report.undetermined),
     ]
     print(_("As of %(date)s") % {"date": _fmt_date(report.as_of)})
@@ -353,7 +506,7 @@ def _print_due(report: Any) -> None:
 def _due(args: argparse.Namespace) -> int:
     from gwiriek.equipment.services import due
 
-    report = due.due_items(within_days=args.within)
+    report = due.due_items(within_days=args.within, inspections_only=args.inspections_only)
     _emit(args, report, _print_due)
     if args.check and (report.overdue or report.upcoming):
         return EXIT_DUE
@@ -498,6 +651,111 @@ def _people_add(args: argparse.Namespace) -> int:
     return _emit(args, result, lambda p: _print_people([p]))
 
 
+def _inspectors_list(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspectors
+
+    return _emit(args, inspectors.list_inspectors(active_only=not args.all), _print_inspectors)
+
+
+def _inspectors_show(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspectors
+
+    return _emit(args, inspectors.get_inspector(args.id), _print_inspector)
+
+
+def _inspectors_add(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.models import Family
+    from gwiriek.equipment.services import inspectors
+
+    result = inspectors.create_inspector(
+        kind="internal" if args.person is not None else "external",
+        person_id=args.person,
+        name=args.name or "",
+        organisation=args.organisation or "",
+        authorized_on=args.authorized_on,
+        authorization_reference=args.reference or "",
+        authorization_document=args.document,
+        authorization_valid_until=args.valid_until,
+        families=Family.values if args.all_families else (args.family or ()),
+        notes=args.notes or "",
+    )
+    return _emit(args, result, _print_inspector)
+
+
+def _inspectors_export(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspectors
+
+    if args.json:
+        _print_json(inspectors.list_inspectors(active_only=not args.all))
+    else:
+        sys.stdout.write(inspectors.export_inspectors_csv(include_inactive=args.all))
+    return EXIT_OK
+
+
+def _inspections_add(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspections
+
+    result_view = inspections.record_inspection(
+        args.ref,
+        inspector_id=args.inspector,
+        decision=args.decision,
+        results=args.point or [],
+        actor=args.actor,
+        inspected_on=args.date,
+        next_due_on=args.next,
+        comment=args.comment or "",
+        report=args.report,
+        report_received_on=args.report_received,
+        report_archive_location=args.archive_location or "",
+    )
+    return _emit(args, result_view, _print_inspection)
+
+
+def _inspections_list(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspections
+
+    result = inspections.list_inspections(
+        item_ref=args.item, since=args.since, inspector_id=args.inspector, limit=args.limit
+    )
+
+    def human(rows: Sequence[Any]) -> None:
+        from django.utils.translation import gettext as _
+
+        _print_inspection_rows(rows)
+        print(_("%(count)d inspection(s).") % {"count": len(rows)})
+
+    return _emit(args, result, human)
+
+
+def _inspections_show(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import inspections
+
+    return _emit(args, inspections.get_inspection(args.id), _print_inspection)
+
+
+def _print_digest(result: Any) -> None:
+    from django.utils.translation import gettext as _
+
+    messages = {
+        "sent": _("Digest sent to %(recipients)s: %(count)d item(s)."),
+        "already_sent": _("The same digest was already sent today; use --force to resend."),
+        "nothing_due": _("Nothing due: no digest sent."),
+    }
+    print(
+        messages[result.status]
+        % {"recipients": ", ".join(result.recipients), "count": result.item_count}
+    )
+
+
+def _notify(args: argparse.Namespace) -> int:
+    from gwiriek.equipment.services import notifications
+
+    result = notifications.send_due_digest(
+        within_days=args.within, force=args.force, recipients=args.to or None
+    )
+    return _emit(args, result, _print_digest)
+
+
 def _mcp(args: argparse.Namespace) -> int:
     from gwiriek.mcp_server import build_server
 
@@ -512,7 +770,13 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser (Django must be set up for translated help)."""
     from django.utils.translation import gettext as _
 
-    from gwiriek.equipment.models import Family, ItemStatus, RopeType
+    from gwiriek.equipment.models import (
+        CheckResult,
+        Family,
+        InspectionDecision,
+        ItemStatus,
+        RopeType,
+    )
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--json", action="store_true", help=_("print JSON on stdout"))
@@ -608,7 +872,96 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--check", action="store_true", help=_("exit with code 3 if any item is passed or due")
     )
+    p.add_argument(
+        "--inspections-only",
+        action="store_true",
+        help=_("only periodic inspection deadlines, not end of life"),
+    )
     p.set_defaults(handler=_due)
+
+    # inspectors
+    inspectors = commands.add_parser("inspectors", help=_("qualified inspectors (R4323-100)"))
+    insp = inspectors.add_subparsers(dest="action", required=True, metavar="ACTION")
+    p = insp.add_parser("list", parents=[common], help=_("list inspectors"))
+    p.add_argument("--all", action="store_true", help=_("include inactive inspectors"))
+    p.set_defaults(handler=_inspectors_list)
+    p = insp.add_parser("show", parents=[common], help=_("show an inspector"))
+    p.add_argument("id", type=int, help=_("inspector id"))
+    p.set_defaults(handler=_inspectors_show)
+    p = insp.add_parser("add", parents=[common], help=_("add an inspector"))
+    who = p.add_mutually_exclusive_group(required=True)
+    who.add_argument("--person", type=int, help=_("internal inspector: person id"))
+    who.add_argument("--name", help=_("external inspector: name"))
+    p.add_argument("--organisation", help=_("external inspector: organisation"))
+    p.add_argument(
+        "--authorized-on", type=_iso_date, help=_("date of the written authorization (YYYY-MM-DD)")
+    )
+    p.add_argument("--reference", help=_("reference of the authorization"))
+    p.add_argument("--document", type=_file, help=_("file of the authorization"))
+    p.add_argument("--valid-until", type=_iso_date, help=_("last day of validity (YYYY-MM-DD)"))
+    scope = p.add_mutually_exclusive_group()
+    scope.add_argument(
+        "--family", action="append", choices=Family.values, help=_("family in scope (repeatable)")
+    )
+    scope.add_argument("--all-families", action="store_true", help=_("every family in scope"))
+    p.add_argument("--notes", help=_("notes"))
+    p.set_defaults(handler=_inspectors_add)
+    p = insp.add_parser(
+        "export",
+        parents=[common],
+        help=_("export the list of qualified persons as CSV (R4323-100)"),
+    )
+    p.add_argument("--all", action="store_true", help=_("include inactive inspectors"))
+    p.set_defaults(handler=_inspectors_export)
+
+    # inspections
+    inspections = commands.add_parser("inspections", help=_("periodic inspections"))
+    ins = inspections.add_subparsers(dest="action", required=True, metavar="ACTION")
+    p = ins.add_parser("add", parents=[common, writer], help=_("record an inspection"))
+    p.add_argument("ref", help=_("id, internal label or serial number"))
+    p.add_argument("--inspector", type=int, required=True, help=_("inspector id"))
+    p.add_argument(
+        "--decision", required=True, choices=InspectionDecision.values, help=_("decision")
+    )
+    p.add_argument(
+        "--point",
+        action="append",
+        type=_point,
+        metavar="POINT=RESULT",
+        help=_("checklist result, POINT being the text or the number, RESULT one of %(results)s")
+        % {"results": ", ".join(CheckResult.values)},
+    )
+    p.add_argument("--date", type=_iso_date, help=_("inspection date (default: today)"))
+    p.add_argument("--next", type=_iso_date, help=_("earlier next inspection date (YYYY-MM-DD)"))
+    p.add_argument("--comment", help=_("comment (required unless fit for use)"))
+    p.add_argument("--report", type=_file, help=_("report file"))
+    p.add_argument(
+        "--report-received", type=_iso_date, help=_("date the external report was received")
+    )
+    p.add_argument("--archive-location", help=_("where the external report is archived"))
+    p.set_defaults(handler=_inspections_add)
+    p = ins.add_parser("list", parents=[common], help=_("list inspections, latest first"))
+    p.add_argument("--item", help=_("only this item"))
+    p.add_argument("--since", type=_iso_date, help=_("only on or after this date"))
+    p.add_argument("--inspector", type=int, help=_("only this inspector id"))
+    p.add_argument("--limit", type=_non_negative, help=_("maximum number of inspections"))
+    p.set_defaults(handler=_inspections_list)
+    p = ins.add_parser("show", parents=[common], help=_("show an inspection"))
+    p.add_argument("id", type=int, help=_("inspection id"))
+    p.set_defaults(handler=_inspections_show)
+
+    # notify
+    p = commands.add_parser("notify", parents=[common], help=_("e-mail the digest of due items"))
+    p.add_argument(
+        "--within", type=_non_negative, default=30, help=_("horizon in days (default: 30)")
+    )
+    p.add_argument("--force", action="store_true", help=_("send even if already sent today"))
+    p.add_argument(
+        "--to",
+        action="append",
+        help=_("recipient, instead of GWIRIEK_ALERT_RECIPIENTS (repeatable)"),
+    )
+    p.set_defaults(handler=_notify)
 
     # catalog
     catalog = commands.add_parser("catalog", help=_("product catalogue"))

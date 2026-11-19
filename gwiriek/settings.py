@@ -107,3 +107,27 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = Path(os.environ.get("GWIRIEK_MEDIA_ROOT", BASE_DIR / "media"))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# E-mail: the console backend prints messages, for development. In production, set
+# GWIRIEK_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend and the host variables.
+EMAIL_BACKEND_PATH = os.environ.get(
+    "GWIRIEK_EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+_SMTP_OPTIONS = {
+    "host": os.environ.get("GWIRIEK_EMAIL_HOST", "localhost"),
+    "port": int(os.environ.get("GWIRIEK_EMAIL_PORT", "25")),
+    "username": os.environ.get("GWIRIEK_EMAIL_HOST_USER", ""),
+    "password": os.environ.get("GWIRIEK_EMAIL_HOST_PASSWORD", ""),
+    "use_tls": _env_bool("GWIRIEK_EMAIL_USE_TLS"),
+    "use_ssl": _env_bool("GWIRIEK_EMAIL_USE_SSL"),
+}
+MAILERS = {
+    "default": {
+        "BACKEND": EMAIL_BACKEND_PATH,
+        "OPTIONS": _SMTP_OPTIONS if EMAIL_BACKEND_PATH.endswith(".smtp.EmailBackend") else {},
+    }
+}
+DEFAULT_FROM_EMAIL = os.environ.get("GWIRIEK_DEFAULT_FROM_EMAIL", "gwiriek@localhost")
+
+# Addresses that receive the digest of due items (gwiriek notify).
+GWIRIEK_ALERT_RECIPIENTS = _env_list("GWIRIEK_ALERT_RECIPIENTS")

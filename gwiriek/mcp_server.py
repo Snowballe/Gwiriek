@@ -18,10 +18,21 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from gwiriek.equipment.services import catalog, due, items, people
+from gwiriek.equipment.services import (
+    assignments,
+    catalog,
+    due,
+    inspections,
+    inspectors,
+    items,
+    people,
+)
 from gwiriek.equipment.services.errors import ServiceError
 from gwiriek.equipment.services.views import (
+    AssignmentView,
     DueReport,
+    InspectionView,
+    InspectorView,
     ItemDetail,
     ItemSummary,
     ManufacturerView,
@@ -42,11 +53,20 @@ assignments and computed end of life.
 - End-of-life dates are indicative and must be confirmed against the manufacturer's
   instructions. Say so when you report them.
 - Statuses: in_stock, in_service, watch, quarantine, retired.
+- Periodic inspections (at least every 12 months, stock included) are recorded with
+  record_inspection by a qualified inspector (list_inspectors) whose written authorization
+  covers the item's family on the inspection day. Every checklist point of the product
+  model needs a result (ok, nok, na); a "nok" point only allows quarantine or retire.
+  Recorded inspections cannot be modified: correct one by recording a new inspection.
+- Write tools record the actor "mcp" in the audit log.
 - This server cannot delete anything.
 """
 
 Status = Literal["in_stock", "in_service", "watch", "quarantine", "retired"]
 InitialStatus = Literal["in_stock", "in_service", "watch", "quarantine"]
+Decision = Literal["valid", "watch", "quarantine", "retire"]
+CheckResultName = Literal["ok", "nok", "na"]
+AssignmentTarget = Literal["person", "site", "stock"]
 FamilyName = Literal[
     "harness",
     "lanyard",
@@ -63,6 +83,10 @@ FamilyName = Literal[
 READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=False)
 CREATES = ToolAnnotations(
     read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False
+)
+#: Updates that can be irreversible (retiring an item is final).
+UPDATES = ToolAnnotations(
+    read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False
 )
 
 
@@ -88,7 +112,7 @@ def build_server() -> MCPServer:
     server = MCPServer(
         "gwiriek",
         title="Gwiriek",
-        description="PPE inventory, life records and end-of-life deadlines.",
+        description="PPE inventory, life records, periodic inspections and deadlines.",
         instructions=INSTRUCTIONS,
         version=_version(),
         log_level="WARNING",
@@ -130,9 +154,10 @@ def build_server() -> MCPServer:
             int, Field(ge=0, le=3650, description="Horizon in days from today.")
         ] = 90,
     ) -> DueReport:
-        """List items (not retired) whose end of life is passed or within the horizon.
+        """List items (not retired) whose end of life or periodic inspection is passed or near.
 
-        Also lists items whose end of life cannot be determined and needs checking by hand.
+        Each entry gives both deadlines and the nearest one. Also lists items whose end of
+        life cannot be determined and needs checking by hand.
         """
         return due.due_items(within_days=within_days)
 
@@ -218,6 +243,145 @@ def build_server() -> MCPServer:
             rope_length_m=rope_length_m,
             rope_type=rope_type or "",
             rope_terminations=rope_terminations,
+            notes=notes,
+        )
+
+    @server.tool(title="List inspectors", annotations=READ_ONLY)
+    @service_tool
+    def list_inspectors(
+        include_inactive: Annotated[
+            bool, Field(description="Include inactive inspectors.")
+        ] = False,
+    ) -> list[InspectorView]:
+        """List qualified inspectors (R4323-100) with their authorization and scope.
+
+        ``qualified`` tells whether the inspector may record an inspection today;
+        ``issues`` says why not.
+        """
+        return inspectors.list_inspectors(active_only=not include_inactive)
+
+    @server.tool(title="Get an item's inspection history", annotations=READ_ONLY)
+    @service_tool
+    def get_inspection_history(
+        ref: Annotated[str, Field(description="Item id, internal label or serial number.")],
+    ) -> list[InspectionView]:
+        """Return an item's periodic inspections, latest first, with frozen checklists."""
+        return inspections.list_inspections(item_ref=ref)
+
+    @server.tool(title="List inspections due", annotations=READ_ONLY)
+    @service_tool
+    def list_inspections_due(
+        within_days: Annotated[
+            int, Field(ge=0, le=3650, description="Horizon in days from today.")
+        ] = 30,
+    ) -> DueReport:
+        """List items, in service or in stock, whose periodic inspection is overdue or near.
+
+        An item never inspected counts from its date put into service or purchase,
+        whichever is earlier; without either it is overdue.
+        """
+        return due.due_items(within_days=within_days, inspections_only=True)
+
+    @server.tool(title="Record an inspection", annotations=CREATES)
+    @service_tool
+    def record_inspection(
+        ref: Annotated[str, Field(description="Item id, internal label or serial number.")],
+        inspector_id: Annotated[int, Field(description="Inspector id (see list_inspectors).")],
+        decision: Annotated[
+            Decision,
+            Field(description="valid (fit for use), watch (fit, under watch), quarantine, retire."),
+        ],
+        points: Annotated[
+            dict[str, CheckResultName],
+            Field(
+                description=(
+                    "Result of every checklist point of the product model, keyed by the "
+                    "point's text or its 1-based number (see get_product_model)."
+                )
+            ),
+        ],
+        inspected_on: Annotated[
+            date | None, Field(description="Inspection date, defaults to today.")
+        ] = None,
+        next_due_on: Annotated[
+            date | None,
+            Field(description="Earlier next inspection date than the model's interval."),
+        ] = None,
+        comment: Annotated[
+            str, Field(description="Observations; required unless the decision is valid.")
+        ] = "",
+        report_received_on: Annotated[
+            date | None,
+            Field(description="External inspector: date the report was received."),
+        ] = None,
+        report_archive_location: Annotated[
+            str, Field(description="External inspector: where the report is archived.")
+        ] = "",
+    ) -> InspectionView:
+        """Record a periodic inspection and apply its decision to the item's status.
+
+        The record cannot be modified afterwards. A report file can only be attached from
+        the admin; for an external inspector, give the report's date of receipt and archive
+        location instead.
+        """
+        return inspections.record_inspection(
+            ref,
+            inspector_id=inspector_id,
+            decision=decision,
+            results=points,
+            actor=MCP_ACTOR,
+            inspected_on=inspected_on,
+            next_due_on=next_due_on,
+            comment=comment,
+            report_received_on=report_received_on,
+            report_archive_location=report_archive_location,
+        )
+
+    @server.tool(title="Change an item's status", annotations=UPDATES)
+    @service_tool
+    def change_item_status(
+        ref: Annotated[str, Field(description="Item id, internal label or serial number.")],
+        status: Annotated[Status, Field(description="New status; retired is final.")],
+        reason: Annotated[
+            str, Field(description="Reason, recorded in the audit log.", min_length=1)
+        ],
+    ) -> ItemDetail:
+        """Change an item's status, recorded with its reason in the audit log.
+
+        An item past its end of life cannot be put into use; a retired item cannot change.
+        """
+        return items.change_status(ref, status, actor=MCP_ACTOR, reason=reason)
+
+    @server.tool(title="Assign an item", annotations=CREATES)
+    @service_tool
+    def assign_item(
+        ref: Annotated[str, Field(description="Item id, internal label or serial number.")],
+        target: Annotated[
+            AssignmentTarget, Field(description="Assign to a person, site or stock.")
+        ],
+        person_id: Annotated[
+            int | None, Field(description="Person id, for a person assignment.")
+        ] = None,
+        location: Annotated[
+            str, Field(description="Site name (required for a site), or storage place.")
+        ] = "",
+        started_on: Annotated[
+            date | None, Field(description="Start date, defaults to today.")
+        ] = None,
+        notes: Annotated[str, Field(description="Free notes.")] = "",
+    ) -> AssignmentView:
+        """Assign an item to a person, a site or the stock, closing its current assignment.
+
+        Issuing an item in stock puts it into service. Quarantined, retired or expired items
+        cannot be issued.
+        """
+        return assignments.assign_item(
+            ref,
+            target,
+            actor=MCP_ACTOR,
+            person_id=person_id,
+            location=location,
+            started_on=started_on,
             notes=notes,
         )
 

@@ -266,3 +266,19 @@ def test_assignment_constraint_one_open(harness_model, make_item, person):
     assignments.assign_item(item.id, "person", actor="t", person_id=person.id)
     assignments.assign_item(item.id, "stock", actor="t")
     assert Assignment.objects.filter(item_id=item.id, ended_on__isnull=True).count() == 1
+
+
+def test_quarantine_without_service_date_keeps_storage_limit(rope_model, make_item, months_ago):
+    """A stock item sent to quarantine has not been put into use: storage still binds."""
+    from gwiriek.equipment.models import Item
+    from gwiriek.equipment.services.views import item_end_of_life
+
+    created = make_item(rope_model, manufactured_on=months_ago(50))
+    item = Item.objects.get(pk=created.id)
+    before = item_end_of_life(item).date
+    items.change_status(item.id, "quarantine", actor="test", reason="damaged sheath")
+    item.refresh_from_db()
+
+    assert item.in_service_on is None
+    assert before is not None
+    assert item_end_of_life(item).date == before

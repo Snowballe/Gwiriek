@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gwiriek\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-19 12:44+0100\n"
+"POT-Creation-Date: 2026-11-19 16:04+0100\n"
 "PO-Revision-Date: 2026-11-19 13:00+0100\n"
 "Last-Translator: Gwiriek contributors\n"
 "Language-Team: French\n"
@@ -103,6 +103,9 @@ msgstr "Mis en service après la durée maximale de stockage."
 msgid "since"
 msgstr "depuis le"
 
+msgid "Next inspection"
+msgstr "Prochaine vérification"
+
 msgid "Notes"
 msgstr "Notes"
 
@@ -136,15 +139,94 @@ msgstr "Qui / où"
 msgid "Until"
 msgstr "Au"
 
+msgid "Inspections"
+msgstr "Vérifications"
+
+msgid "now (never inspected, no date of entry)"
+msgstr "maintenant (jamais vérifié, pas de date d'entrée)"
+
+msgid "Inspector"
+msgstr "Vérificateur"
+
+msgid "Decision"
+msgstr "Décision"
+
+msgid "Inspection date"
+msgstr "Date de vérification"
+
+msgid "Resulting status"
+msgstr "Statut résultant"
+
+msgid "Comment"
+msgstr "Commentaire"
+
+msgid "Report"
+msgstr "Rapport"
+
+#, python-format
+msgid "received on %(date)s, archived at %(place)s"
+msgstr "reçu le %(date)s, archivé : %(place)s"
+
+msgid "Recorded by"
+msgstr "Enregistré par"
+
+msgid "Checklist"
+msgstr "Points de contrôle"
+
+msgid "yes"
+msgstr "oui"
+
+msgid "no"
+msgstr "non"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Authorized on"
+msgstr "Habilité le"
+
+msgid "Valid until"
+msgstr "Valable jusqu'au"
+
+msgid "Scope"
+msgstr "Périmètre"
+
+msgid "Qualified"
+msgstr "Habilité"
+
+msgid "Authorization reference"
+msgstr "Référence de l'habilitation"
+
+msgid "Authorization document"
+msgstr "Document d'habilitation"
+
+msgid "now"
+msgstr "maintenant"
+
+msgid "end of life"
+msgstr "fin de vie"
+
+msgid "inspection"
+msgstr "vérification"
+
+msgid "Inspection due"
+msgstr "Vérification due"
+
+msgid "Nearest"
+msgstr "Plus proche"
+
 msgid "Days"
 msgstr "Jours"
 
-msgid "End of life passed"
-msgstr "Fin de vie dépassée"
+msgid "Overdue (end of life or inspection)"
+msgstr "En retard (fin de vie ou vérification)"
 
 #, python-format
-msgid "End of life within %(days)d days"
-msgstr "Fin de vie dans les %(days)d jours"
+msgid "Due within %(days)d days"
+msgstr "À échéance dans les %(days)d jours"
 
 msgid "End of life to determine by hand"
 msgstr "Fin de vie à déterminer manuellement"
@@ -152,9 +234,6 @@ msgstr "Fin de vie à déterminer manuellement"
 #, python-format
 msgid "As of %(date)s"
 msgstr "Au %(date)s"
-
-msgid "Name"
-msgstr "Nom"
 
 msgid "Website"
 msgstr "Site web"
@@ -186,12 +265,6 @@ msgstr "Procédure de vérification"
 msgid "Checklist:"
 msgstr "Points de contrôle :"
 
-msgid "yes"
-msgstr "oui"
-
-msgid "no"
-msgstr "non"
-
 msgid "Last name"
 msgstr "Nom"
 
@@ -203,6 +276,22 @@ msgstr "E-mail"
 
 msgid "Active"
 msgstr "Actif"
+
+#, python-format
+msgid "%(count)d inspection(s)."
+msgstr "%(count)d vérification(s)."
+
+#, python-format
+msgid "Digest sent to %(recipients)s: %(count)d item(s)."
+msgstr "Récapitulatif envoyé à %(recipients)s : %(count)d article(s)."
+
+msgid "The same digest was already sent today; use --force to resend."
+msgstr ""
+"Le même récapitulatif a déjà été envoyé aujourd'hui ; --force pour le "
+"renvoyer."
+
+msgid "Nothing due: no digest sent."
+msgstr "Rien à échéance : aucun récapitulatif envoyé."
 
 msgid "print JSON on stdout"
 msgstr "écrire du JSON sur la sortie standard"
@@ -333,6 +422,125 @@ msgstr "horizon en jours (par défaut : 90)"
 msgid "exit with code 3 if any item is passed or due"
 msgstr "sortir avec le code 3 si un article est dépassé ou à échéance"
 
+msgid "only periodic inspection deadlines, not end of life"
+msgstr "seulement les vérifications périodiques, pas la fin de vie"
+
+msgid "qualified inspectors (R4323-100)"
+msgstr "vérificateurs habilités (R4323-100)"
+
+msgid "list inspectors"
+msgstr "lister les vérificateurs"
+
+msgid "include inactive inspectors"
+msgstr "inclure les vérificateurs inactifs"
+
+msgid "show an inspector"
+msgstr "afficher un vérificateur"
+
+msgid "inspector id"
+msgstr "id du vérificateur"
+
+msgid "add an inspector"
+msgstr "ajouter un vérificateur"
+
+msgid "internal inspector: person id"
+msgstr "vérificateur interne : id de la personne"
+
+msgid "external inspector: name"
+msgstr "vérificateur externe : nom"
+
+msgid "external inspector: organisation"
+msgstr "vérificateur externe : organisme"
+
+msgid "date of the written authorization (YYYY-MM-DD)"
+msgstr "date de l'habilitation écrite (AAAA-MM-JJ)"
+
+msgid "reference of the authorization"
+msgstr "référence de l'habilitation"
+
+msgid "file of the authorization"
+msgstr "fichier de l'habilitation"
+
+msgid "last day of validity (YYYY-MM-DD)"
+msgstr "dernier jour de validité (AAAA-MM-JJ)"
+
+msgid "family in scope (repeatable)"
+msgstr "famille du périmètre (répétable)"
+
+msgid "every family in scope"
+msgstr "toutes les familles dans le périmètre"
+
+msgid "export the list of qualified persons as CSV (R4323-100)"
+msgstr "exporter la liste des personnes qualifiées en CSV (R4323-100)"
+
+msgid "periodic inspections"
+msgstr "vérifications périodiques"
+
+msgid "record an inspection"
+msgstr "enregistrer une vérification"
+
+msgid "decision"
+msgstr "décision"
+
+#, python-format
+msgid ""
+"checklist result, POINT being the text or the number, RESULT one of "
+"%(results)s"
+msgstr ""
+"résultat d'un point de contrôle, POINT étant son texte ou son numéro, RESULT"
+" parmi %(results)s"
+
+msgid "inspection date (default: today)"
+msgstr "date de vérification (défaut : aujourd'hui)"
+
+msgid "earlier next inspection date (YYYY-MM-DD)"
+msgstr "prochaine vérification avancée (AAAA-MM-JJ)"
+
+msgid "comment (required unless fit for use)"
+msgstr "commentaire (obligatoire sauf décision valide)"
+
+msgid "report file"
+msgstr "fichier du rapport"
+
+msgid "date the external report was received"
+msgstr "date de réception du rapport externe"
+
+msgid "where the external report is archived"
+msgstr "lieu d'archivage du rapport externe"
+
+msgid "list inspections, latest first"
+msgstr "lister les vérifications, les plus récentes en premier"
+
+msgid "only this item"
+msgstr "seulement cet article"
+
+msgid "only on or after this date"
+msgstr "seulement à partir de cette date"
+
+msgid "only this inspector id"
+msgstr "seulement ce vérificateur (id)"
+
+msgid "maximum number of inspections"
+msgstr "nombre maximal de vérifications"
+
+msgid "show an inspection"
+msgstr "afficher une vérification"
+
+msgid "inspection id"
+msgstr "id de la vérification"
+
+msgid "e-mail the digest of due items"
+msgstr "envoyer par e-mail le récapitulatif des échéances"
+
+msgid "horizon in days (default: 30)"
+msgstr "horizon en jours (défaut : 30)"
+
+msgid "send even if already sent today"
+msgstr "envoyer même si déjà envoyé aujourd'hui"
+
+msgid "recipient, instead of GWIRIEK_ALERT_RECIPIENTS (repeatable)"
+msgstr "destinataire, à la place de GWIRIEK_ALERT_RECIPIENTS (répétable)"
+
 msgid "product catalogue"
 msgstr "catalogue des modèles"
 
@@ -461,9 +669,6 @@ msgstr "Vérification"
 msgid "lifespan"
 msgstr "durée de vie"
 
-msgid "end of life"
-msgstr "fin de vie"
-
 msgid "Passed"
 msgstr "Dépassée"
 
@@ -502,6 +707,9 @@ msgstr "Par défaut : aujourd'hui."
 msgid "Dates and end of life"
 msgstr "Dates et fin de vie"
 
+msgid "Periodic inspection"
+msgstr "Vérification périodique"
+
 msgid "Assignment"
 msgstr "Affectation"
 
@@ -513,6 +721,25 @@ msgstr "Enregistrement"
 
 msgid "(at most)"
 msgstr "(au plus tard)"
+
+msgid "next inspection"
+msgstr "prochaine vérification"
+
+msgid "Retired: no more inspections."
+msgstr "Rebuté : plus de vérification."
+
+msgid "Due now: never inspected and no date of entry."
+msgstr "Due maintenant : jamais vérifié et pas de date d'entrée."
+
+#, python-format
+msgid "Due on %(date)s"
+msgstr "Due le %(date)s"
+
+msgid "(overdue)"
+msgstr "(en retard)"
+
+msgid "Record an inspection"
+msgstr "Enregistrer une vérification"
 
 msgid "assigned to"
 msgstr "affecté à"
@@ -562,6 +789,56 @@ msgstr "stockage maximal"
 
 msgid "service life"
 msgstr "durée d'utilisation"
+
+msgid "scope (families)"
+msgstr "périmètre (familles)"
+
+msgid "Written authorization"
+msgstr "Habilitation écrite"
+
+msgid "qualified today"
+msgstr "habilité aujourd'hui"
+
+msgid "Export the list of qualified persons (CSV)"
+msgstr "Exporter la liste des personnes qualifiées (CSV)"
+
+msgid ""
+"Leave empty for the model's interval (at most 12 months), capped by the end "
+"of life."
+msgstr ""
+"Laisser vide pour l'intervalle du modèle (12 mois au plus), plafonné par la "
+"fin de vie."
+
+msgid ""
+"Points of the model's checklist; they are frozen in the record. A non-"
+"compliant point only allows quarantine or retirement."
+msgstr ""
+"Points de contrôle du modèle, figés dans l'enregistrement. Un point non "
+"conforme n'autorise que la quarantaine ou le rebut."
+
+msgid ""
+"Choose the item and save to load its checklist. Without a checklist, "
+"describe what was checked in the comment."
+msgstr ""
+"Choisissez l'article et enregistrez pour charger ses points de contrôle. "
+"Sans points de contrôle, décrivez ce qui a été vérifié dans le commentaire."
+
+msgid ""
+"External inspector: attach the report, or give the date it was received and "
+"where it is archived."
+msgstr ""
+"Vérificateur externe : joignez le rapport, ou indiquez sa date de réception "
+"et son lieu d'archivage."
+
+msgid "inspector at the time"
+msgstr "vérificateur à la date"
+
+#, python-format
+msgid "valid until %(date)s"
+msgstr "valable jusqu'au %(date)s"
+
+msgid "checklist results"
+msgstr "résultats des points de contrôle"
 
 msgid "PPE inventory"
 msgstr "Parc EPI"
@@ -631,6 +908,21 @@ msgstr "Valide, à surveiller"
 
 msgid "Retire"
 msgstr "À rebuter"
+
+msgid "Compliant"
+msgstr "Conforme"
+
+msgid "Not compliant"
+msgstr "Non conforme"
+
+msgid "Not applicable"
+msgstr "Sans objet"
+
+msgid "Internal"
+msgstr "Interne"
+
+msgid "External"
+msgstr "Externe"
 
 msgid "website"
 msgstr "site web"
@@ -819,26 +1111,64 @@ msgstr "pièce jointe"
 msgid "attachments"
 msgstr "pièces jointes"
 
+msgid "The scope must be a list of distinct, known families."
+msgstr "Le périmètre doit être une liste de familles connues, sans doublon."
+
+msgid "type"
+msgstr "type"
+
+msgid "Internal inspectors only."
+msgstr "Vérificateurs internes seulement."
+
+msgid "External inspectors only."
+msgstr "Vérificateurs externes seulement."
+
+msgid "organisation"
+msgstr "organisme"
+
+msgid "authorization date"
+msgstr "date d'habilitation"
+
+msgid "Date of the written authorization; none means not authorized."
+msgstr "Date de l'habilitation écrite ; vide signifie non habilité."
+
+msgid "authorization reference"
+msgstr "référence de l'habilitation"
+
+msgid "Reference of the written authorization, training or certificate."
+msgstr ""
+"Référence de l'habilitation écrite, de la formation ou de l'attestation."
+
+msgid "authorization document"
+msgstr "document d'habilitation"
+
+msgid "authorization valid until"
+msgstr "habilitation valable jusqu'au"
+
+msgid "Last day of validity, if the authorization expires."
+msgstr "Dernier jour de validité, si l'habilitation expire."
+
+msgid "Families of equipment this person may inspect."
+msgstr "Familles d'équipements que cette personne peut vérifier."
+
+msgid "inspector"
+msgstr "vérificateur"
+
+msgid "inspectors"
+msgstr "vérificateurs"
+
 msgid "inspection date"
 msgstr "date de vérification"
 
-msgid "internal inspector"
-msgstr "vérificateur interne"
+msgid "Identity and authorization of the inspector when the record was made."
+msgstr ""
+"Identité et habilitation du vérificateur au moment de l'enregistrement."
 
-msgid "external inspector"
-msgstr "vérificateur externe"
+msgid "Points of the model's checklist, frozen, with their result."
+msgstr "Points de contrôle du modèle, figés, avec leur résultat."
 
-msgid "Name and company of an external qualified person."
-msgstr "Nom et société de la personne qualifiée externe."
-
-msgid "decision"
-msgstr "décision"
-
-msgid "checklist results"
-msgstr "résultats des points de contrôle"
-
-msgid "observations"
-msgstr "observations"
+msgid "comment"
+msgstr "commentaire"
 
 msgid "next inspection due"
 msgstr "prochaine vérification"
@@ -846,17 +1176,53 @@ msgstr "prochaine vérification"
 msgid "report"
 msgstr "rapport"
 
+msgid "report received on"
+msgstr "rapport reçu le"
+
+msgid "Date an external report was handed over, when it is not attached."
+msgstr "Date de remise d'un rapport externe, s'il n'est pas joint."
+
 msgid "report archive location"
 msgstr "lieu d'archivage du rapport"
 
 msgid "Where an external report is archived, when it is not attached."
 msgstr "Lieu d'archivage d'un rapport externe non joint."
 
-msgid "inspection"
-msgstr "vérification"
+msgid "resulting status"
+msgstr "statut résultant"
+
+msgid "recorded by"
+msgstr "enregistré par"
+
+msgid "recorded at"
+msgstr "enregistré le"
 
 msgid "inspections"
 msgstr "vérifications"
+
+msgid "day"
+msgstr "jour"
+
+msgid "fingerprint"
+msgstr "empreinte"
+
+msgid "subject"
+msgstr "objet"
+
+msgid "recipients"
+msgstr "destinataires"
+
+msgid "forced"
+msgstr "forcé"
+
+msgid "sent at"
+msgstr "envoyé le"
+
+msgid "e-mail digest"
+msgstr "récapitulatif par e-mail"
+
+msgid "e-mail digests"
+msgstr "récapitulatifs par e-mail"
 
 #, python-format
 msgid "Unknown assignment target %(kind)s."
@@ -922,6 +1288,202 @@ msgstr "Le nombre de jours ne peut pas être négatif."
 msgid "Indicative: to be confirmed against the manufacturer's instructions."
 msgstr "À titre indicatif : à confirmer selon la notice du fabricant."
 
+#, python-format
+msgid "Unknown result %(result)s for %(point)s."
+msgstr "Résultat %(result)s inconnu pour %(point)s."
+
+msgid "A checklist point is given twice."
+msgstr "Un point de contrôle est donné deux fois."
+
+#, python-format
+msgid "%(point)s is not a point of this model's checklist."
+msgstr "%(point)s n'est pas un point de contrôle de ce modèle."
+
+#, python-format
+msgid "The point %(point)s is given twice."
+msgstr "Le point %(point)s est donné deux fois."
+
+#, python-format
+msgid "Every checklist point needs a result; missing: %(points)s."
+msgstr ""
+"Chaque point de contrôle doit avoir un résultat ; manquants : %(points)s."
+
+#, python-format
+msgid "Unknown decision %(decision)s."
+msgstr "Décision %(decision)s inconnue."
+
+msgid "A retired item cannot be inspected."
+msgstr "Un article rebuté ne peut pas être vérifié."
+
+msgid "An inspection cannot be dated in the future."
+msgstr "Une vérification ne peut pas être datée dans le futur."
+
+msgid "This date is in the future."
+msgstr "Cette date est dans le futur."
+
+msgid "An inspection cannot be dated before the date of manufacture."
+msgstr ""
+"Une vérification ne peut pas être antérieure à la date de fabrication."
+
+msgid "This date is before the date of manufacture."
+msgstr "Cette date est antérieure à la date de fabrication."
+
+#, python-format
+msgid ""
+"The item's latest inspection is dated %(date)s; a new one cannot be earlier."
+msgstr ""
+"La dernière vérification de l'article date du %(date)s ; une nouvelle ne "
+"peut pas être antérieure."
+
+msgid "Earlier than the latest inspection."
+msgstr "Antérieure à la dernière vérification."
+
+#, python-format
+msgid ""
+"A point is not compliant (%(points)s): the item can only be quarantined or "
+"retired."
+msgstr ""
+"Un point n'est pas conforme (%(points)s) : l'article ne peut qu'être mis en "
+"quarantaine ou rebuté."
+
+msgid ""
+"This item has passed its end of life: it can only be quarantined or retired."
+msgstr ""
+"Cet article a dépassé sa fin de vie : il ne peut qu'être mis en quarantaine "
+"ou rebuté."
+
+#, python-format
+msgid "A comment is required for the decision %(decision)s."
+msgstr "Un commentaire est obligatoire pour la décision %(decision)s."
+
+msgid "Explain the decision."
+msgstr "Expliquez la décision."
+
+msgid "This model has no checklist: describe what was checked in the comment."
+msgstr ""
+"Ce modèle n'a pas de points de contrôle : décrivez ce qui a été vérifié dans"
+" le commentaire."
+
+msgid "Describe what was checked."
+msgstr "Décrivez ce qui a été vérifié."
+
+msgid "The report cannot be received before the inspection or in the future."
+msgstr ""
+"Le rapport ne peut pas être reçu avant la vérification ni dans le futur."
+
+msgid "Invalid date."
+msgstr "Date invalide."
+
+msgid ""
+"For an external inspector, attach the report or give the date it was "
+"received and where it is archived."
+msgstr ""
+"Pour un vérificateur externe, joignez le rapport ou indiquez sa date de "
+"réception et son lieu d'archivage."
+
+msgid "Attach the report or give its archive details."
+msgstr "Joignez le rapport ou indiquez où il est archivé."
+
+msgid "A retired item has no next inspection."
+msgstr "Un article rebuté n'a pas de prochaine vérification."
+
+#, python-format
+msgid ""
+"The next inspection must be after the inspection and no later than %(date)s."
+msgstr ""
+"La prochaine vérification doit suivre la vérification et au plus tard le "
+"%(date)s."
+
+msgid "The actor of a change is required."
+msgstr "L'auteur du changement est obligatoire."
+
+#, python-format
+msgid "Inspection of %(date)s: %(decision)s."
+msgstr "Vérification du %(date)s : %(decision)s."
+
+#, python-format
+msgid "No inspection with id %(id)s."
+msgstr "Aucune vérification avec l'id %(id)s."
+
+#, python-format
+msgid "No inspector with id %(id)s."
+msgstr "Aucun vérificateur avec l'id %(id)s."
+
+msgid "An internal inspector is one of the company's people."
+msgstr "Un vérificateur interne est une personne de l'entreprise."
+
+msgid "Name and organisation are for external inspectors only."
+msgstr "Le nom et l'organisme sont réservés aux vérificateurs externes."
+
+msgid "An external inspector is not one of the company's people."
+msgstr "Un vérificateur externe n'est pas une personne de l'entreprise."
+
+msgid "Enter the name of the external inspector."
+msgstr "Indiquez le nom du vérificateur externe."
+
+msgid "Choose internal or external."
+msgstr "Choisissez interne ou externe."
+
+msgid "A written authorization needs a reference or an attached document."
+msgstr ""
+"Une habilitation écrite doit avoir une référence ou un document joint."
+
+msgid "Enter the authorization date first."
+msgstr "Indiquez d'abord la date d'habilitation."
+
+msgid "The validity ends before the authorization."
+msgstr "La validité se termine avant l'habilitation."
+
+#, python-format
+msgid "Unknown family: %(values)s."
+msgstr "Famille inconnue : %(values)s."
+
+#, python-format
+msgid "Unknown inspector type %(kind)s."
+msgstr "Type de vérificateur %(kind)s inconnu."
+
+#, python-format
+msgid "No person with id %(id)s."
+msgstr "Aucune personne avec l'id %(id)s."
+
+msgid "This person is already an inspector."
+msgstr "Cette personne est déjà vérificateur."
+
+msgid "This inspector is inactive."
+msgstr "Ce vérificateur est inactif."
+
+msgid "This inspector is no longer one of the active people."
+msgstr "Ce vérificateur ne fait plus partie des personnes actives."
+
+msgid "This inspector has no written authorization."
+msgstr "Ce vérificateur n'a pas d'habilitation écrite."
+
+#, python-format
+msgid "This inspector's authorization starts after %(date)s."
+msgstr "L'habilitation de ce vérificateur commence après le %(date)s."
+
+#, python-format
+msgid "This inspector's authorization was no longer valid on %(date)s."
+msgstr "L'habilitation de ce vérificateur n'était plus valable le %(date)s."
+
+msgid "This inspector's scope covers no family of equipment."
+msgstr ""
+"Le périmètre de ce vérificateur ne couvre aucune famille d'équipements."
+
+#, python-format
+msgid "The family %(family)s is outside this inspector's scope."
+msgstr "La famille %(family)s est hors du périmètre de ce vérificateur."
+
+msgid "Organisation"
+msgstr "Organisme"
+
+msgid "Authorization date"
+msgstr "Date d'habilitation"
+
+#, python-format
+msgid "Qualified on %(date)s"
+msgstr "Habilité le %(date)s"
+
 msgid "An item id must be a number."
 msgstr "Un id d'article doit être un nombre."
 
@@ -942,12 +1504,6 @@ msgstr "Statut inconnu : %(values)s."
 msgid "Enter a serial number or a lot number."
 msgstr "Saisissez un n° de série ou un n° de lot."
 
-msgid "This date is in the future."
-msgstr "Cette date est dans le futur."
-
-msgid "This date is before the date of manufacture."
-msgstr "Cette date est antérieure à la date de fabrication."
-
 msgid "An item in use needs the date it was put into service."
 msgstr "Un article en utilisation doit avoir une date de mise en service."
 
@@ -967,9 +1523,6 @@ msgstr "Un motif est obligatoire pour passer au statut %(status)s."
 msgid "A reason is required for this status."
 msgstr "Un motif est obligatoire pour ce statut."
 
-msgid "The actor of a change is required."
-msgstr "L'auteur du changement est obligatoire."
-
 msgid "This item has passed its end of life and cannot be put into use."
 msgstr ""
 "Cet article a dépassé sa fin de vie et ne peut pas être mis en utilisation."
@@ -979,8 +1532,33 @@ msgid "The item already has the status %(status)s."
 msgstr "L'article a déjà le statut %(status)s."
 
 #, python-format
-msgid "No person with id %(id)s."
-msgstr "Aucune personne avec l'id %(id)s."
+msgid "end of life %(date)s"
+msgstr "fin de vie %(date)s"
+
+#, python-format
+msgid "inspection due %(date)s"
+msgstr "vérification due le %(date)s"
+
+msgid "never inspected, no date of entry"
+msgstr "jamais vérifié, pas de date d'entrée"
+
+#, python-format
+msgid "Gwiriek: %(overdue)d overdue, %(upcoming)d due within %(days)d days"
+msgstr ""
+"Gwiriek : %(overdue)d en retard, %(upcoming)d à échéance sous %(days)d jours"
+
+#, python-format
+msgid "PPE deadlines as of %(date)s."
+msgstr "Échéances des EPI au %(date)s."
+
+msgid "Overdue: do not use before action"
+msgstr "En retard : ne pas utiliser avant régularisation"
+
+msgid ""
+"No recipient: set GWIRIEK_ALERT_RECIPIENTS (comma-separated addresses)."
+msgstr ""
+"Aucun destinataire : renseignez GWIRIEK_ALERT_RECIPIENTS (adresses séparées "
+"par des virgules)."
 
 msgid "French"
 msgstr "Français"

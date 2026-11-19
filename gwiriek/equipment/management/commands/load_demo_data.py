@@ -5,13 +5,14 @@ always check the current manufacturer instructions. Item dates are relative to t
 that the demo always shows items past, near and far from their end of life.
 """
 
+from datetime import timedelta
 from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from gwiriek.equipment.models import Item, Manufacturer, Person, ProductModel
-from gwiriek.equipment.services import assignments, catalog, items
+from gwiriek.equipment.models import Family, Inspector, Item, Manufacturer, Person, ProductModel
+from gwiriek.equipment.services import assignments, catalog, inspections, inspectors, items
 from gwiriek.equipment.services._common import today
 from gwiriek.equipment.services.end_of_life import add_months
 
@@ -32,6 +33,19 @@ HARNESS_CHECKLIST = [
     "Boucles et pièces métalliques : déformation, fissures, corrosion",
     "Points d'attache : usure, déformation",
     "Test de fonctionnement des boucles de réglage",
+]
+
+ROPE_CHECKLIST = [
+    "Marquage et identification lisibles",
+    "Gaine : coupures, usure, glaçage, traces de produits chimiques",
+    "Âme : zones dures ou molles, hernies",
+    "Terminaisons cousues : coutures et protections",
+]
+
+CONNECTOR_CHECKLIST = [
+    "Marquage lisible",
+    "Corps : fissures, déformation, usure, corrosion",
+    "Doigt : ouverture, fermeture et verrouillage automatiques",
 ]
 
 MANUFACTURERS: list[dict[str, str]] = [
@@ -69,6 +83,7 @@ PRODUCT_MODELS: list[dict[str, Any]] = [
         "standards": ["EN 362", "EN 12275"],
         "lifetime_unlimited": True,
         "lifetime_source": PETZL_LIFETIME,
+        "checklist": CONNECTOR_CHECKLIST,
     },
     {
         # Source: PETZL_LIFETIME (textile).
@@ -95,6 +110,7 @@ PRODUCT_MODELS: list[dict[str, Any]] = [
             "c20aa05e-e0bb-4885-92d8-front/original/"
             "NOTICE_BEAL_745441_745443_ERGO%2012.5_Cordes-semi-statiques.pdf"
         ),
+        "checklist": ROPE_CHECKLIST,
     },
     {
         # Source: Kong notice 225020020KK on a third-party site: 10 years recommended,
@@ -151,17 +167,83 @@ class Command(BaseCommand):
             person = Person.objects.filter(first_name=first, last_name=last).first()
             people[first] = person.pk if person else catalog_person(first, last)
 
+        demo_inspectors = self._inspectors(people)
+
         if Item.objects.filter(label__startswith="DEMO-").exists():
             self.stdout.write("Demo items already present; catalogue and people checked.")
             return
-        self._create_items(models, people)
+        self._create_items(models, people, demo_inspectors)
         self.stdout.write(self.style.SUCCESS("Demo data loaded."))
 
-    def _create_items(self, models: dict[str, int], people: dict[str, int]) -> None:
+    def _inspectors(self, people: dict[str, int]) -> dict[str, int]:
+        """Create the demo inspectors that are missing and return their ids."""
+        t = today()
+        found: dict[str, int] = {}
+        specs: list[tuple[str, dict[str, Any]]] = [
+            (
+                "internal",
+                {
+                    # Authorized and in scope for every family.
+                    "kind": "internal",
+                    "person_id": people["Gwenn"],
+                    "authorized_on": add_months(t, -24),
+                    "authorization_reference": "Habilitation interne n° 2024-01",
+                    "authorization_valid_until": add_months(t, 12),
+                    "families": Family.values,
+                },
+            ),
+            (
+                "external",
+                {
+                    "kind": "external",
+                    "name": "Erwan Morvan",
+                    "organisation": "Vérif'EPI Armor (fictif)",
+                    "authorized_on": add_months(t, -36),
+                    "authorization_reference": "Contrat de vérification VGP 2023-07",
+                    "families": Family.values,
+                },
+            ),
+            (
+                "expired",
+                {
+                    # Authorization expired two months ago: cannot inspect any more.
+                    "kind": "internal",
+                    "person_id": people["Loïc"],
+                    "authorized_on": add_months(t, -36),
+                    "authorization_reference": "Habilitation interne n° 2023-02",
+                    "authorization_valid_until": add_months(t, -2),
+                    "families": [Family.HARNESS, Family.ROPE],
+                },
+            ),
+        ]
+        for key, data in specs:
+            existing = (
+                Inspector.objects.filter(person_id=data["person_id"]).first()
+                if "person_id" in data
+                else Inspector.objects.filter(name=data["name"]).first()
+            )
+            found[key] = existing.pk if existing else inspectors.create_inspector(**data).id
+        return found
+
+    def _create_items(
+        self, models: dict[str, int], people: dict[str, int], inspector_ids: dict[str, int]
+    ) -> None:
         t = today()
 
         def months_ago(n: int) -> Any:
             return add_months(t, -n)
+
+        def inspect(label: str, inspector: str, on: Any, decision: str, **fields: Any) -> None:
+            checklist = ProductModel.objects.get(items__label=label).checklist
+            fields.setdefault("results", dict.fromkeys(checklist, "ok"))
+            inspections.record_inspection(
+                label,
+                inspector_id=inspector_ids[inspector],
+                decision=decision,
+                actor=ACTOR,
+                inspected_on=on,
+                **fields,
+            )
 
         def add(model: str, label: str, **fields: Any) -> str:
             items.create_item(product_model_id=models[model], actor=ACTOR, label=label, **fields)
@@ -270,6 +352,28 @@ class Command(BaseCommand):
         items.change_status(
             q1, "quarantine", actor=ACTOR, reason="Chute de l'équipement depuis 10 m, à examiner"
         )
+
+        # Inspections. DEMO-H02: last inspected 13 months ago, overdue.
+        inspect("DEMO-H02", "internal", months_ago(13), "valid")
+        # DEMO-R01: inspected by the external body, due in about 20 days.
+        inspect(
+            "DEMO-R01",
+            "external",
+            months_ago(12) + timedelta(days=20),
+            "valid",
+            report_received_on=months_ago(12) + timedelta(days=27),
+            report_archive_location="Classeur VGP 2025, bureau de Brest",
+        )
+        # DEMO-H01: worn but fit, under watch; next inspection capped by its end of life.
+        inspect(
+            "DEMO-H01",
+            "internal",
+            months_ago(3),
+            "watch",
+            comment="Usure légère de la sangle ventrale, à surveiller.",
+        )
+        # DEMO-C01: connector in stock, checked recently.
+        inspect("DEMO-C01", "internal", months_ago(2), "valid")
 
 
 def catalog_person(first: str, last: str) -> int:
